@@ -134,17 +134,27 @@ export const LearnerDashboard: React.FC<LearnerDashboardProps> = ({
             </button>
           </div>
 
-          <div className="grid sm:grid-cols-2 gap-4">
-            {recommendedOpportunities.map((opp) => (
-              <OpportunityCard
-                key={opp.id}
-                opportunity={opp}
-                onSelect={onSelectOpportunity}
-                onBook={onBookOpportunity}
-                onAskAI={(o) => onAskRAG(`Tell me more about "${o.title}"`)}
-              />
-            ))}
-          </div>
+          <p className="text-xs text-[#6e797e] -mt-2">
+            Recommendations are ranked by semantic similarity to your profile preferences, subjects, budget, and learning goals.
+          </p>
+
+          {recommendedOpportunities.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-[#d9e3f6] bg-white p-6 text-center text-xs text-[#6e797e]">
+              No AI matches yet. Complete your preferences, then regenerate your profile embedding to receive recommendations.
+            </div>
+          ) : (
+            <div className="grid sm:grid-cols-2 gap-4">
+              {recommendedOpportunities.map((opp) => (
+                <OpportunityCard
+                  key={opp.id}
+                  opportunity={opp}
+                  onSelect={onSelectOpportunity}
+                  onBook={onBookOpportunity}
+                  onAskAI={(o) => onAskRAG(`Tell me more about "${o.title}"`)}
+                />
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Right 1 Col: Upcoming Bookings & Profile Quick Summary */}

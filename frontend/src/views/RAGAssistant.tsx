@@ -7,11 +7,13 @@ import { Sparkles, Send, BookOpen, ExternalLink, RefreshCw } from 'lucide-react'
 
 interface RAGAssistantProps {
   initialQuery?: string;
+  learnerId?: string;
   onClearInitialQuery?: () => void;
 }
 
 export const RAGAssistant: React.FC<RAGAssistantProps> = ({
   initialQuery,
+  learnerId,
   onClearInitialQuery,
 }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([
@@ -57,7 +59,7 @@ export const RAGAssistant: React.FC<RAGAssistantProps> = ({
     setLoading(true);
 
     try {
-      const res = await api.askRAGAssistant(queryText);
+      const res = await api.askRAGAssistant(queryText, learnerId);
       const assistantMsg: ChatMessage = {
         id: `assistant-${Date.now()}`,
         sender: 'assistant',
@@ -104,7 +106,7 @@ export const RAGAssistant: React.FC<RAGAssistantProps> = ({
               <AITag label="Grounded RAG" size="sm" />
             </div>
             <p className="text-xs text-[#6e797e]">
-              Answers backed by verified knowledge base citations only — zero hallucination guaranteed.
+              Answers are generated only from verified knowledge-base citations. If the context is insufficient, the assistant says so.
             </p>
           </div>
         </div>

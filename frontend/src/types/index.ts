@@ -4,13 +4,13 @@ export type OpportunityType = 'TUITION' | 'COURSE' | 'WORKSHOP' | 'MENTORSHIP' |
 
 export type DeliveryMode = 'online' | 'in-person';
 
-export type OpportunityStatus = 'draft' | 'active' | 'closed';
+export type OpportunityStatus = 'draft' | 'active' | 'closed' | 'expired';
 
 export type VerificationStatus = 'pending' | 'verified' | 'rejected';
 
 export type BookingStatus = 'pending' | 'accepted' | 'rejected' | 'completed' | 'cancelled';
 
-export type SponsorshipStatus = 'pending' | 'pledged' | 'completed' | 'cancelled';
+export type SponsorshipStatus = 'pending' | 'active' | 'completed' | 'cancelled';
 
 export type KnowledgeCategory = 'scholarship' | 'internship' | 'course' | 'workshop' | 'competition' | 'career_opportunity';
 
