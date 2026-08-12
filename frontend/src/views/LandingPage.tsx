@@ -1,17 +1,7 @@
 import React from 'react';
 import type { Opportunity } from '../types';
 import { OpportunityCard } from '../components/common/OpportunityCard';
-import {
-  Sparkles,
-  ArrowRight,
-  GraduationCap,
-  Building2,
-  Heart,
-  Search,
-  BookOpen,
-  Users,
-  Award,
-} from 'lucide-react';
+import { ArrowRight, BookOpen, Building2, CheckCircle2, Compass, GraduationCap, Heart, Search, ShieldCheck, Sparkles } from 'lucide-react';
 
 interface LandingPageProps {
   onOpenAuth: (mode: 'login' | 'register') => void;
@@ -21,208 +11,65 @@ interface LandingPageProps {
   onExplore: () => void;
 }
 
-export const LandingPage: React.FC<LandingPageProps> = ({
-  onOpenAuth,
-  featuredOpportunities,
-  onSelectOpportunity,
-  onNavigateRAG,
-  onExplore,
-}) => {
+export const LandingPage: React.FC<LandingPageProps> = ({ onOpenAuth, featuredOpportunities, onSelectOpportunity, onNavigateRAG, onExplore }) => {
+  const opportunityCount = featuredOpportunities.length;
+  const freeCount = featuredOpportunities.filter((opportunity) => opportunity.price === 0).length;
+
   return (
     <div className="space-y-16 pb-16">
-      {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-b from-[#e6eeff] via-[#f8f9ff] to-white rounded-3xl p-8 sm:p-14 border border-[#d9e3f6]">
-        <div className="max-w-4xl mx-auto text-center space-y-6">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white border border-[#d9e3f6] shadow-xs text-xs font-semibold font-geist text-[#00647c]">
-            <Sparkles size={14} className="text-[#ea580c]" />
-            <span>AI-Driven Education & Career Opportunity Engine</span>
+      <section className="relative isolate overflow-hidden rounded-3xl border border-[#d9e3f6] bg-gradient-to-br from-[#e6eeff] via-white to-[#fff7ed] px-6 py-10 sm:px-12 sm:py-16">
+        <div className="absolute -right-16 -top-16 -z-10 h-64 w-64 rounded-full bg-[#b7eaff]/60 blur-3xl" />
+        <div className="absolute -bottom-20 left-1/3 -z-10 h-52 w-52 rounded-full bg-[#fea619]/20 blur-3xl" />
+        <div className="mx-auto grid max-w-6xl gap-10 lg:grid-cols-[1.15fr_.85fr] lg:items-center">
+          <div className="space-y-6 text-center lg:text-left">
+            <div className="inline-flex items-center gap-2 rounded-full border border-[#b7eaff] bg-white/90 px-3.5 py-1.5 text-xs font-semibold text-[#00647c] shadow-xs">
+              <Sparkles size={14} className="text-[#ea580c]" />
+              Sri Lanka’s learning opportunity platform
+            </div>
+            <h1 className="max-w-3xl text-4xl font-extrabold leading-[1.08] tracking-tight text-[#121c2a] sm:text-6xl font-display">
+              Find the next step for your <span className="text-[#00647c]">future.</span>
+            </h1>
+            <p className="max-w-2xl text-base leading-relaxed text-[#3e484d] sm:text-lg">
+              Discover affordable learning opportunities, get matched to what fits your goals, and ask grounded questions about scholarships, courses, and career pathways.
+            </p>
+            <div className="flex flex-wrap justify-center gap-3 lg:justify-start">
+              <button type="button" onClick={onExplore} className="inline-flex items-center gap-2 rounded-xl bg-[#00647c] px-5 py-3 text-sm font-semibold text-white shadow-md transition-colors hover:bg-[#004e61]">
+                Explore opportunities <ArrowRight size={16} />
+              </button>
+              <button type="button" onClick={onNavigateRAG} className="inline-flex items-center gap-2 rounded-xl border border-[#fea619]/50 bg-white px-5 py-3 text-sm font-semibold text-[#855300] transition-colors hover:bg-[#fff7ed]">
+                <Sparkles size={16} className="text-[#ea580c]" /> Ask the AI assistant
+              </button>
+            </div>
+            <div className="flex flex-wrap justify-center gap-x-5 gap-y-2 text-xs font-medium text-[#3e484d] lg:justify-start">
+              <span className="inline-flex items-center gap-1.5"><CheckCircle2 size={14} className="text-[#00647c]" /> Browse without an account</span>
+              <span className="inline-flex items-center gap-1.5"><ShieldCheck size={14} className="text-[#00647c]" /> Verified knowledge sources only</span>
+            </div>
           </div>
 
-          <h1 className="text-3xl sm:text-5xl font-extrabold text-[#121c2a] tracking-tight leading-tight font-display">
-            Turning Knowledge into <span className="text-[#00647c]">Opportunity</span>
-          </h1>
-
-          <p className="text-base sm:text-lg text-[#3e484d] max-w-2xl mx-auto leading-relaxed">
-            Striver connects Sri Lankan learners with verified tutors, accredited courses, industry mentorships, and community sponsorship through embedding-based AI matching and grounded RAG knowledge search.
-          </p>
-
-          <div className="flex flex-wrap items-center justify-center gap-4 pt-2">
-            <button
-              type="button"
-              onClick={() => onOpenAuth('register')}
-              className="px-6 py-3 bg-[#00647c] hover:bg-[#004e61] text-white font-semibold text-sm rounded-xl transition-all shadow-md flex items-center gap-2"
-            >
-              <span>Get Started Now</span>
-              <ArrowRight size={16} />
-            </button>
-
-            <button
-              type="button"
-              onClick={onNavigateRAG}
-              className="px-6 py-3 bg-[#fff7ed] hover:bg-[#ffedd5] text-[#c2410c] border border-[#fea619]/40 font-semibold text-sm rounded-xl transition-all flex items-center gap-2 ai-glow"
-            >
-              <Sparkles size={16} className="text-[#ea580c]" />
-              <span>Ask AI Assistant</span>
-            </button>
-          </div>
-
-          {/* Stat highlights */}
-          <div className="pt-8 grid grid-cols-2 md:grid-cols-4 gap-4 max-w-3xl mx-auto border-t border-[#d9e3f6]/60">
-            <div>
-              <div className="text-2xl font-bold text-[#121c2a] font-display">1,400+</div>
-              <div className="text-xs text-[#6e797e] font-geist">Learners Reached</div>
+          <div className="rounded-2xl border border-[#d9e3f6] bg-white/90 p-5 shadow-lg backdrop-blur-sm">
+            <div className="flex items-center justify-between border-b border-[#eff4ff] pb-4">
+              <div><p className="text-xs font-semibold uppercase tracking-wider text-[#00647c]">Start discovering</p><h2 className="mt-1 text-lg font-bold text-[#121c2a] font-display">What are you looking for?</h2></div>
+              <div className="rounded-xl bg-[#fff7ed] p-2 text-[#ea580c]"><Search size={20} /></div>
             </div>
-            <div>
-              <div className="text-2xl font-bold text-[#121c2a] font-display">100%</div>
-              <div className="text-xs text-[#6e797e] font-geist">Verified Tutors</div>
+            <div className="mt-4 space-y-3">
+              <button type="button" onClick={onExplore} className="flex w-full items-center gap-3 rounded-xl border border-[#d9e3f6] p-3 text-left transition-colors hover:border-[#00647c] hover:bg-[#f8f9ff]"><div className="rounded-lg bg-[#e6eeff] p-2 text-[#00647c]"><Compass size={18} /></div><span><b className="block text-sm text-[#121c2a]">Browse learning opportunities</b><small className="text-xs text-[#6e797e]">Courses, tuition, workshops and mentoring</small></span><ArrowRight className="ml-auto text-[#00647c]" size={16} /></button>
+              <button type="button" onClick={onNavigateRAG} className="flex w-full items-center gap-3 rounded-xl border border-[#fea619]/40 p-3 text-left transition-colors hover:bg-[#fff7ed]"><div className="rounded-lg bg-[#fff7ed] p-2 text-[#ea580c]"><BookOpen size={18} /></div><span><b className="block text-sm text-[#121c2a]">Ask about scholarships or ICT</b><small className="text-xs text-[#6e797e]">Answers cite verified platform knowledge</small></span><ArrowRight className="ml-auto text-[#ea580c]" size={16} /></button>
             </div>
-            <div>
-              <div className="text-2xl font-bold text-[#121c2a] font-display">LKR 575K+</div>
-              <div className="text-xs text-[#6e797e] font-geist">Pledged Sponsorships</div>
-            </div>
-            <div>
-              <div className="text-2xl font-bold text-[#121c2a] font-display">Sub-sec</div>
-              <div className="text-xs text-[#6e797e] font-geist">AI Matching</div>
-            </div>
+            <div className="mt-4 grid grid-cols-2 gap-3 rounded-xl bg-[#f8f9ff] p-3 text-center"><div><b className="block text-xl text-[#00647c]">{opportunityCount}</b><span className="text-[11px] text-[#6e797e]">live opportunities</span></div><div><b className="block text-xl text-emerald-700">{freeCount}</b><span className="text-[11px] text-[#6e797e]">free / sponsored</span></div></div>
           </div>
         </div>
       </section>
 
-      {/* 3-Step Workflow: Learn / Prepare / Discover */}
-      <section className="max-w-5xl mx-auto text-center space-y-8">
-        <div>
-          <span className="text-xs font-bold text-[#00647c] uppercase tracking-wider font-geist">
-            Ecosystem Architecture
-          </span>
-          <h2 className="text-2xl sm:text-3xl font-bold text-[#121c2a] mt-1 font-display">
-            How TakeUForward Empowers Every Stakeholder
-          </h2>
-        </div>
-
-        <div className="grid md:grid-cols-3 gap-6">
-          <div className="bg-white p-6 rounded-2xl border border-[#d9e3f6] shadow-xs text-left hover:border-[#00647c] transition-all">
-            <div className="w-12 h-12 rounded-xl bg-[#e6eeff] text-[#00647c] flex items-center justify-center mb-4">
-              <Search size={24} />
-            </div>
-            <h3 className="font-bold text-lg text-[#121c2a] mb-2 font-display">1. Discover & Match</h3>
-            <p className="text-xs text-[#3e484d] leading-relaxed mb-4">
-              AI vector search pairs learner interests, budget limits, and target A/L levels with verified educational offerings.
-            </p>
-            <span className="text-[11px] font-semibold text-[#00647c] font-geist inline-flex items-center gap-1">
-              <span>Learner Experience</span> →
-            </span>
-          </div>
-
-          <div className="bg-white p-6 rounded-2xl border border-[#d9e3f6] shadow-xs text-left hover:border-[#00647c] transition-all">
-            <div className="w-12 h-12 rounded-xl bg-[#fff7ed] text-[#ea580c] flex items-center justify-center mb-4">
-              <BookOpen size={24} />
-            </div>
-            <h3 className="font-bold text-lg text-[#121c2a] mb-2 font-display">2. RAG Assistant</h3>
-            <p className="text-xs text-[#3e484d] leading-relaxed mb-4">
-              Ground answers using verified government scholarships, diploma entries, and industry opportunities with direct citations.
-            </p>
-            <span className="text-[11px] font-semibold text-[#ea580c] font-geist inline-flex items-center gap-1">
-              <span>Knowledge Base</span> →
-            </span>
-          </div>
-
-          <div className="bg-white p-6 rounded-2xl border border-[#d9e3f6] shadow-xs text-left hover:border-[#00647c] transition-all">
-            <div className="w-12 h-12 rounded-xl bg-[#f0fdf4] text-emerald-700 flex items-center justify-center mb-4">
-              <Award size={24} />
-            </div>
-            <h3 className="font-bold text-lg text-[#121c2a] mb-2 font-display">3. Sponsor & Grow</h3>
-            <p className="text-xs text-[#3e484d] leading-relaxed mb-4">
-              Sponsors directly pledge financial support for high-potential learners to bridge socioeconomic gaps.
-            </p>
-            <span className="text-[11px] font-semibold text-emerald-700 font-geist inline-flex items-center gap-1">
-              <span>Impact Funding</span> →
-            </span>
-          </div>
-        </div>
+      <section className="mx-auto grid max-w-6xl gap-4 md:grid-cols-3">
+        {[{ icon: GraduationCap, title: 'For learners', text: 'Build a profile, receive relevant AI matches, and book opportunities that suit your budget.', action: 'Create learner account' }, { icon: Building2, title: 'For providers', text: 'Turn your skills into tutoring, courses, workshops, and career support opportunities.', action: 'Become a provider' }, { icon: Heart, title: 'For sponsors', text: 'Pledge support for learners and help make education more accessible.', action: 'Support a learner' }].map(({ icon: Icon, title, text, action }) => <button key={title} type="button" onClick={() => onOpenAuth('register')} className="group rounded-2xl border border-[#d9e3f6] bg-white p-6 text-left shadow-xs transition-all hover:-translate-y-0.5 hover:border-[#00647c] hover:shadow-md"><Icon className="mb-4 text-[#00647c]" size={26} /><h2 className="font-bold text-[#121c2a] font-display">{title}</h2><p className="mt-2 text-xs leading-relaxed text-[#3e484d]">{text}</p><span className="mt-4 inline-flex items-center gap-1 text-xs font-semibold text-[#00647c]">{action} <ArrowRight size={14} className="transition-transform group-hover:translate-x-1" /></span></button>)}
       </section>
 
-      {/* Featured Opportunities Section */}
-      <section className="max-w-6xl mx-auto space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-bold text-[#121c2a] font-display">
-              Featured Educational Opportunities
-            </h2>
-            <p className="text-xs text-[#3e484d]">
-              Verified courses, tuition sessions, and workshops ready for instant booking.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={onExplore}
-            className="text-xs font-semibold text-[#00647c] hover:underline font-geist flex items-center gap-1"
-          >
-            <span>Explore All</span>
-            <ArrowRight size={14} />
-          </button>
-        </div>
-
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {featuredOpportunities.slice(0, 3).map((opp) => (
-            <OpportunityCard
-              key={opp.id}
-              opportunity={opp}
-              onSelect={onSelectOpportunity}
-              onAskAI={() => onNavigateRAG()}
-            />
-          ))}
-        </div>
+      <section className="mx-auto max-w-6xl space-y-6">
+        <div className="flex flex-wrap items-end justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-wider text-[#00647c]">Available now</p><h2 className="mt-1 text-2xl font-bold text-[#121c2a] font-display">Explore learning opportunities</h2><p className="mt-1 text-xs text-[#6e797e]">Open an opportunity to see the details. Sign in only when you are ready to book.</p></div><button type="button" onClick={onExplore} className="text-xs font-semibold text-[#00647c] hover:underline">View all opportunities →</button></div>
+        {featuredOpportunities.length ? <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">{featuredOpportunities.slice(0, 3).map((opportunity) => <OpportunityCard key={opportunity.id} opportunity={opportunity} onSelect={onSelectOpportunity} onAskAI={() => onNavigateRAG()} />)}</div> : <div className="rounded-2xl border border-dashed border-[#d9e3f6] bg-white p-8 text-center text-sm text-[#6e797e]">Opportunities will appear here as verified providers publish them.</div>}
       </section>
 
-      {/* Role Selection Call to Action */}
-      <section className="bg-[#e6eeff] rounded-3xl p-8 sm:p-12 border border-[#d9e3f6]">
-        <div className="max-w-3xl mx-auto text-center space-y-6">
-          <h2 className="text-2xl sm:text-3xl font-bold text-[#121c2a] font-display">
-            Join the platform in the role that fits you
-          </h2>
-          <p className="text-sm text-[#3e484d]">
-            Create an account to unlock a role-specific workspace. Your permissions and navigation are assigned securely after sign-in.
-          </p>
-
-          <div className="grid sm:grid-cols-4 gap-3 pt-2">
-            <button
-              type="button"
-              onClick={() => onOpenAuth('register')}
-              className="p-4 bg-white rounded-xl border border-[#d9e3f6] hover:border-[#00647c] shadow-xs text-center flex flex-col items-center gap-2 transition-all hover:-translate-y-0.5"
-            >
-              <GraduationCap size={24} className="text-[#00647c]" />
-              <span className="font-bold text-xs text-[#121c2a] font-display">Learner</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => onOpenAuth('register')}
-              className="p-4 bg-white rounded-xl border border-[#d9e3f6] hover:border-[#00647c] shadow-xs text-center flex flex-col items-center gap-2 transition-all hover:-translate-y-0.5"
-            >
-              <Building2 size={24} className="text-[#00647c]" />
-              <span className="font-bold text-xs text-[#121c2a] font-display">Provider</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => onOpenAuth('register')}
-              className="p-4 bg-white rounded-xl border border-[#d9e3f6] hover:border-[#00647c] shadow-xs text-center flex flex-col items-center gap-2 transition-all hover:-translate-y-0.5"
-            >
-              <Heart size={24} className="text-[#00647c]" />
-              <span className="font-bold text-xs text-[#121c2a] font-display">Sponsor</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => onOpenAuth('login')}
-              className="p-4 bg-white rounded-xl border border-[#d9e3f6] hover:border-[#00647c] shadow-xs text-center flex flex-col items-center gap-2 transition-all hover:-translate-y-0.5"
-            >
-              <Users size={24} className="text-[#00647c]" />
-              <span className="font-bold text-xs text-[#121c2a] font-display">Admin</span>
-            </button>
-          </div>
-        </div>
-      </section>
+      <section className="mx-auto max-w-6xl rounded-3xl bg-[#00647c] p-8 text-center text-white sm:p-12"><Sparkles className="mx-auto text-[#fea619]" size={28} /><h2 className="mt-4 text-2xl font-bold font-display sm:text-3xl">Guidance you can trust, not a generic chatbot.</h2><p className="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-white/80">The assistant retrieves only verified platform knowledge before responding. If there is no relevant source, it says so instead of inventing an answer.</p><button type="button" onClick={onNavigateRAG} className="mt-6 rounded-xl bg-white px-5 py-3 text-sm font-semibold text-[#00647c] transition-colors hover:bg-[#e6eeff]">Try the grounded assistant</button></section>
     </div>
   );
 };

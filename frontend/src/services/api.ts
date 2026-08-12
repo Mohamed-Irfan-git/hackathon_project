@@ -116,6 +116,9 @@ export const api = {
     if (error) throw error;
     return data as KnowledgeBaseEntry;
   },
+  async indexVerifiedKnowledge(): Promise<{ indexed: number; skipped: number; failed: number; processed: number }> {
+    return invoke('admin-index-knowledge', {});
+  },
   async toggleKnowledgeStatus(entry: KnowledgeBaseEntry): Promise<KnowledgeBaseEntry> {
     return this.upsertKnowledgeBaseEntry({ ...entry, status: entry.status === 'verified' ? 'draft' : 'verified' });
   },

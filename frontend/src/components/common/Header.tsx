@@ -19,7 +19,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenAuth,
   onNavigateRAG,
   onToggleSidebarMobile,
-  userName = 'Kamal Perera',
+  userName = 'User',
   isLoggedIn,
   onLogout,
 }) => {

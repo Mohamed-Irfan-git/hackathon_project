@@ -216,7 +216,7 @@ export const LearnerDashboard: React.FC<LearnerDashboardProps> = ({
               <div>
                 <span className="text-[#6e797e] block">Budget Constraint:</span>
                 <span className="font-semibold text-[#121c2a]">
-                  Max LKR {profile.budget_max?.toLocaleString() || '15,000'} / course
+                  {profile.budget_max !== undefined ? `Max LKR ${profile.budget_max.toLocaleString()} / course` : 'Not set yet'}
                 </span>
               </div>
               <div>

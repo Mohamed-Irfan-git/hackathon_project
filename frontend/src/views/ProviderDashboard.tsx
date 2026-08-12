@@ -112,13 +112,13 @@ export const ProviderDashboard: React.FC<ProviderDashboardProps> = ({
       <div className="grid sm:grid-cols-3 gap-4">
         <MetricTile
           label="Learners Reached"
-          value={provider.total_students || 1240}
+          value={provider.total_students ?? 0}
           icon={<Users size={20} className="text-[#00647c]" />}
           subtext="Enrolled across all courses"
         />
         <MetricTile
           label="Sessions Completed"
-          value={provider.sessions_completed || 185}
+          value={provider.sessions_completed ?? 0}
           icon={<CheckCircle2 size={20} className="text-emerald-600" />}
           subtext="Completed educational sessions"
         />

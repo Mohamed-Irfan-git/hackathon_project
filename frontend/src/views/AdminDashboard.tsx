@@ -28,6 +28,7 @@ interface AdminDashboardProps {
   onVerifyProvider: (providerId: string, decision: 'verified' | 'rejected') => void;
   onUpsertKnowledge: (entry: Partial<KnowledgeBaseEntry>) => void;
   onToggleKnowledgeStatus: (id: string) => void;
+  onIndexKnowledge: () => void;
 }
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({
@@ -38,6 +39,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onVerifyProvider,
   onUpsertKnowledge,
   onToggleKnowledgeStatus,
+  onIndexKnowledge,
 }) => {
   const [activeTab, setActiveTab] = useState<'metrics' | 'providers' | 'rag' | 'opportunities'>('metrics');
 
@@ -264,14 +266,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </p>
             </div>
 
-            <button
-              type="button"
-              onClick={() => setIsKbModalOpen(true)}
-              className="px-4 py-2 bg-[#00647c] hover:bg-[#004e61] text-white text-xs font-semibold rounded-xl transition-colors font-geist flex items-center gap-1.5 shadow-xs self-start"
-            >
-              <PlusCircle size={14} />
-              <span>Add KB Entry</span>
-            </button>
+            <div className="flex gap-2 self-start">
+              <button type="button" onClick={onIndexKnowledge} className="px-4 py-2 border border-[#00647c] text-[#00647c] hover:bg-[#e6eeff] text-xs font-semibold rounded-xl transition-colors font-geist">
+                Index verified entries
+              </button>
+              <button type="button" onClick={() => setIsKbModalOpen(true)} className="px-4 py-2 bg-[#00647c] hover:bg-[#004e61] text-white text-xs font-semibold rounded-xl transition-colors font-geist flex items-center gap-1.5 shadow-xs">
+                <PlusCircle size={14} />
+                <span>Add KB Entry</span>
+              </button>
+            </div>
           </div>
 
           <div className="overflow-x-auto">

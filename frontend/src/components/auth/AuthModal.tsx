@@ -19,9 +19,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 }) => {
   const [mode, setMode] = useState<'login' | 'register'>(initialMode);
   const [selectedRole, setSelectedRole] = useState<UserRole>('learner');
-  const [fullName, setFullName] = useState('Kamal Perera');
-  const [email, setEmail] = useState('kamal.perera@example.com');
-  const [password, setPassword] = useState('password123');
+  const [fullName, setFullName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
 
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);

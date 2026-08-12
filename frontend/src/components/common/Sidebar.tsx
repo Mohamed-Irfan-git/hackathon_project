@@ -39,6 +39,8 @@ interface SidebarProps {
   onSelectTab: (tab: NavTab) => void;
   isMobileOpen: boolean;
   onCloseMobile: () => void;
+  bookingCount?: number;
+  pendingProviderCount?: number;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -47,6 +49,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onSelectTab,
   isMobileOpen,
   onCloseMobile,
+  bookingCount = 0,
+  pendingProviderCount = 0,
 }) => {
   if (currentRole === 'public') return null;
 
@@ -64,7 +68,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     menuItems = [
       { id: 'learner-dashboard', label: 'Dashboard', icon: <LayoutDashboard size={18} /> },
       { id: 'discover', label: 'Discover Opportunities', icon: <Compass size={18} /> },
-      { id: 'bookings', label: 'My Bookings', icon: <CalendarCheck size={18} />, badge: '2' },
+      { id: 'bookings', label: 'My Bookings', icon: <CalendarCheck size={18} />, badge: bookingCount ? String(bookingCount) : undefined },
       { id: 'rag', label: 'AI RAG Assistant', icon: <Sparkles size={18} />, isAI: true },
       { id: 'sponsorship', label: 'Sponsorships', icon: <HeartHandshake size={18} /> },
       { id: 'profile', label: 'My Profile', icon: <User size={18} /> },
@@ -73,7 +77,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     menuItems = [
       { id: 'provider-dashboard', label: 'Provider Portal', icon: <LayoutDashboard size={18} /> },
       { id: 'provider-opportunities', label: 'My Opportunities', icon: <Layers size={18} /> },
-      { id: 'provider-bookings', label: 'Booking Requests', icon: <CalendarCheck size={18} />, badge: '1' },
+      { id: 'provider-bookings', label: 'Booking Requests', icon: <CalendarCheck size={18} />, badge: bookingCount ? String(bookingCount) : undefined },
       { id: 'provider-profile', label: 'Profile & Verification', icon: <CheckCircle size={18} /> },
     ];
   } else if (currentRole === 'sponsor') {
@@ -86,7 +90,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     menuItems = [
       { id: 'admin-impact', label: 'Impact Summary', icon: <LayoutDashboard size={18} /> },
       { id: 'admin-knowledge', label: 'Knowledge Base (RAG)', icon: <Database size={18} /> },
-      { id: 'admin-providers', label: 'Provider Queue', icon: <CheckCircle size={18} />, badge: '1' },
+      { id: 'admin-providers', label: 'Provider Queue', icon: <CheckCircle size={18} />, badge: pendingProviderCount ? String(pendingProviderCount) : undefined },
       { id: 'admin-opportunities', label: 'Opportunity Moderation', icon: <ShieldAlert size={18} /> },
     ];
   }

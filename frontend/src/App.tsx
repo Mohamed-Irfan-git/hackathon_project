@@ -31,7 +31,7 @@ export function App() {
   const [role, setRole] = useState<UserRole>('public');
   const [activeTab, setActiveTab] = useState<NavTab>('learner-dashboard');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [userName, setUserName] = useState('Kamal Perera');
+  const [userName, setUserName] = useState('');
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   // Domain data
@@ -165,6 +165,13 @@ export function App() {
     setKnowledgeBase((prev) => prev.map((kb) => (kb.id === id ? updated : kb)));
     showToast(`Entry status toggled to ${updated.status}!`);
   };
+  const handleIndexKnowledge = async () => {
+    try {
+      const result = await api.indexVerifiedKnowledge();
+      showToast(`Knowledge indexing complete: ${result.indexed} indexed, ${result.skipped} already current, ${result.failed} failed.`);
+      if (currentUserId) await loadData(currentUserId, 'admin');
+    } catch (error) { showToast(error instanceof Error ? error.message : 'Knowledge indexing failed.'); }
+  };
 
   const displayedLearner: LearnerProfileData = learnerProfile ?? { id: currentUserId ?? '', user_id: currentUserId ?? '', full_name: userName };
   const currentProvider = providers.find((provider) => provider.user_id === currentUserId) || { id: currentUserId ?? '', user_id: currentUserId ?? '', organization_name: userName, verification_status: 'pending' as const };
@@ -203,6 +210,8 @@ export function App() {
           onSelectTab={setActiveTab}
           isMobileOpen={isMobileSidebarOpen}
           onCloseMobile={() => setIsMobileSidebarOpen(false)}
+          bookingCount={role === 'provider' ? bookings.filter((booking) => booking.status === 'pending').length : bookings.length}
+          pendingProviderCount={providers.filter((provider) => provider.verification_status === 'pending').length}
         />
 
         {/* Content Area */}
@@ -391,6 +400,7 @@ export function App() {
                   onVerifyProvider={handleVerifyProvider}
                   onUpsertKnowledge={handleUpsertKnowledge}
                   onToggleKnowledgeStatus={handleToggleKnowledgeStatus}
+                  onIndexKnowledge={handleIndexKnowledge}
                 />
               )}
             </>

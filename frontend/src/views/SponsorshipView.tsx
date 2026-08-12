@@ -89,7 +89,11 @@ export const SponsorshipView: React.FC<SponsorshipViewProps> = ({
           Eligible Sponsorship Candidates
         </h2>
 
-        <div className="grid md:grid-cols-2 gap-6">
+        {requests.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-[#d9e3f6] bg-white p-8 text-center text-xs text-[#6e797e]">
+            No sponsorship requests have been submitted yet. Candidate requests will appear here when this workflow is added to the live backend.
+          </div>
+        ) : <div className="grid md:grid-cols-2 gap-6">
           {requests.map((req) => {
             const percentRaised = Math.min(100, Math.round((req.amount_raised / req.amount_needed) * 100));
             return (
@@ -147,7 +151,7 @@ export const SponsorshipView: React.FC<SponsorshipViewProps> = ({
               </div>
             );
           })}
-        </div>
+        </div>}
       </div>
 
       {/* Sponsorship History Table */}
@@ -165,11 +169,11 @@ export const SponsorshipView: React.FC<SponsorshipViewProps> = ({
                 <th className="py-3 px-4">Status</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#eff4ff]">
-              {sponsorships.map((s) => (
+          <tbody className="divide-y divide-[#eff4ff]">
+              {sponsorships.length === 0 ? <tr><td colSpan={5} className="px-4 py-8 text-center text-[#6e797e]">No sponsorship records yet.</td></tr> : sponsorships.map((s) => (
                 <tr key={s.id} className="hover:bg-[#f8f9ff]">
                   <td className="py-3 px-4 font-semibold text-[#121c2a]">{s.sponsor_name}</td>
-                  <td className="py-3 px-4 text-[#3e484d]">{s.learner_name || 'Kamal Perera'}</td>
+                  <td className="py-3 px-4 text-[#3e484d]">{s.learner_name || 'Not specified'}</td>
                   <td className="py-3 px-4 text-[#3e484d] max-w-[200px] truncate">
                     {s.opportunity_title || 'General ICT Sponsorship'}
                   </td>
