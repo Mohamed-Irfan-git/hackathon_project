@@ -1,10 +1,10 @@
 import React from 'react';
 import type { UserRole } from '../../types';
-import { Sparkles, LogIn, Menu, Shield, GraduationCap, Building2, Heart, Globe } from 'lucide-react';
+import { Sparkles, LogIn, Menu, Shield, Globe } from 'lucide-react';
 
 interface HeaderProps {
   currentRole: UserRole;
-  onRoleChange: (role: UserRole) => void;
+  onHome: () => void;
   onOpenAuth: (mode: 'login' | 'register') => void;
   onNavigateRAG: () => void;
   onToggleSidebarMobile: () => void;
@@ -15,7 +15,7 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({
   currentRole,
-  onRoleChange,
+  onHome,
   onOpenAuth,
   onNavigateRAG,
   onToggleSidebarMobile,
@@ -40,7 +40,7 @@ export const Header: React.FC<HeaderProps> = ({
           )}
 
           <div
-            onClick={() => onRoleChange('public')}
+            onClick={onHome}
             className="flex items-center gap-2 cursor-pointer group"
           >
             <div className="w-9 h-9 rounded-xl bg-[#00647c] flex items-center justify-center text-white font-bold text-lg font-display shadow-xs group-hover:bg-[#004e61] transition-colors">
@@ -57,71 +57,8 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         </div>
 
-        {/* Center Role Switcher bar (Essential for overnight demo testing) */}
-        <div className="hidden md:flex items-center gap-1 p-1 bg-[#eff4ff] rounded-xl border border-[#d9e3f6] text-xs font-medium font-geist">
-          <span className="px-2 text-[11px] text-[#6e797e] uppercase tracking-wider font-semibold">
-            Demo Role:
-          </span>
-          <button
-            type="button"
-            onClick={() => onRoleChange('public')}
-            className={`flex items-center gap-1 px-2.5 py-1 rounded-lg transition-all ${
-              currentRole === 'public'
-                ? 'bg-white text-[#00647c] font-semibold shadow-xs'
-                : 'text-[#3e484d] hover:text-[#121c2a]'
-            }`}
-          >
-            <Globe size={13} />
-            <span>Public</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => onRoleChange('learner')}
-            className={`flex items-center gap-1 px-2.5 py-1 rounded-lg transition-all ${
-              currentRole === 'learner'
-                ? 'bg-white text-[#00647c] font-semibold shadow-xs'
-                : 'text-[#3e484d] hover:text-[#121c2a]'
-            }`}
-          >
-            <GraduationCap size={13} />
-            <span>Learner</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => onRoleChange('provider')}
-            className={`flex items-center gap-1 px-2.5 py-1 rounded-lg transition-all ${
-              currentRole === 'provider'
-                ? 'bg-white text-[#00647c] font-semibold shadow-xs'
-                : 'text-[#3e484d] hover:text-[#121c2a]'
-            }`}
-          >
-            <Building2 size={13} />
-            <span>Provider</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => onRoleChange('sponsor')}
-            className={`flex items-center gap-1 px-2.5 py-1 rounded-lg transition-all ${
-              currentRole === 'sponsor'
-                ? 'bg-white text-[#00647c] font-semibold shadow-xs'
-                : 'text-[#3e484d] hover:text-[#121c2a]'
-            }`}
-          >
-            <Heart size={13} />
-            <span>Sponsor</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => onRoleChange('admin')}
-            className={`flex items-center gap-1 px-2.5 py-1 rounded-lg transition-all ${
-              currentRole === 'admin'
-                ? 'bg-white text-[#00647c] font-semibold shadow-xs'
-                : 'text-[#3e484d] hover:text-[#121c2a]'
-            }`}
-          >
-            <Shield size={13} />
-            <span>Admin</span>
-          </button>
+        <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-[#eff4ff] rounded-xl border border-[#d9e3f6] text-xs font-semibold text-[#00647c] font-geist">
+          {isLoggedIn ? <><Shield size={14} /><span className="capitalize">{currentRole} workspace</span></> : <><Globe size={14} /><span>Explore opportunities freely</span></>}
         </div>
 
         {/* Right CTAs */}

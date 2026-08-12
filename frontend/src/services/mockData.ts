@@ -196,7 +196,7 @@ export const MOCK_SPONSORSHIPS: Sponsorship[] = [
     opportunity_id: 'opp-1',
     opportunity_title: 'A/L ICT Python & SQL Fast-Track Bootcamp',
     amount: 8500,
-    status: 'pledged',
+    status: 'pending',
     note: 'Sponsorship pledged for high-achieving student in Colombo North district.',
     created_at: '2026-08-06T14:00:00Z',
   },

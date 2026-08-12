@@ -1,339 +1,123 @@
-import { isSupabaseConfigured, supabase } from '../lib/supabase';
-import type {
-  Opportunity,
-  Booking,
-  Sponsorship,
-  SponsorshipRequest,
-  KnowledgeBaseEntry,
-  ImpactMetrics,
-  RAGResponse,
-  ProviderProfileData,
-} from '../types';
-import {
-  MOCK_OPPORTUNITIES,
-  MOCK_BOOKINGS,
-  MOCK_SPONSORSHIPS,
-  MOCK_SPONSORSHIP_REQUESTS,
-  MOCK_KNOWLEDGE_BASE,
-  MOCK_IMPACT_METRICS,
-  MOCK_PROVIDERS,
-} from './mockData';
+import { isSupabaseConfigured, supabase, supabaseAnonKey, supabaseUrl } from '../lib/supabase';
+import type { Booking, ImpactMetrics, KnowledgeBaseEntry, Opportunity, ProviderProfileData, RAGResponse, Sponsorship } from '../types';
 
-// Local state memory store so UI actions reflect dynamically during demo
-let opportunitiesStore: Opportunity[] = [...MOCK_OPPORTUNITIES];
-let bookingsStore: Booking[] = [...MOCK_BOOKINGS];
-let sponsorshipsStore: Sponsorship[] = [...MOCK_SPONSORSHIPS];
-let sponsorshipRequestsStore: SponsorshipRequest[] = [...MOCK_SPONSORSHIP_REQUESTS];
-let knowledgeBaseStore: KnowledgeBaseEntry[] = [...MOCK_KNOWLEDGE_BASE];
-let providersStore: ProviderProfileData[] = [...MOCK_PROVIDERS];
-let impactMetricsStore: ImpactMetrics = { ...MOCK_IMPACT_METRICS };
+type DbOpportunity = Omit<Opportunity, 'provider_name' | 'provider_verified'> & { provider_name?: string; provider_verified?: boolean };
+const toOpportunity = (row: DbOpportunity): Opportunity => ({
+  ...row,
+  provider_name: row.provider_name ?? 'Verified provider',
+  provider_verified: row.provider_verified ?? true,
+  description: row.description ?? '', subject: row.subject ?? 'General', target_level: row.target_level ?? 'All levels',
+  price: Number(row.price ?? 0), delivery_mode: row.delivery_mode ?? 'online', duration: row.duration ?? 'Flexible',
+});
+const unwrap = <T>(payload: unknown): T => {
+  if (payload && typeof payload === 'object' && 'data' in payload) return (payload as { data: T }).data;
+  return payload as T;
+};
+async function invoke<T>(name: string, body?: unknown): Promise<T> {
+  const payload = body === undefined || body === null ? undefined : body as Record<string, unknown>;
+  const { data, error } = await supabase.functions.invoke(name, payload === undefined ? undefined : { body: payload });
+  if (error) throw error;
+  return unwrap<T>(data);
+}
 
 export const api = {
-  // --- OPPORTUNITIES ---
-  async getOpportunities(filters?: {
-    subject?: string;
-    level?: string;
-    budget_max?: number;
-    location?: string;
-    search?: string;
-  }): Promise<Opportunity[]> {
-    if (isSupabaseConfigured) {
-      try {
-        let query = supabase.from('opportunities').select('*');
-        if (filters?.subject) query = query.ilike('subject', `%${filters.subject}%`);
-        if (filters?.level) query = query.ilike('target_level', `%${filters.level}%`);
-        if (filters?.budget_max) query = query.lte('price', filters.budget_max);
-        const { data, error } = await query;
-        if (!error && data && data.length > 0) return data as Opportunity[];
-      } catch (err) {
-        console.warn('Supabase fetch failed, using mock data:', err);
-      }
-    }
-
-    let results = [...opportunitiesStore];
-
-    if (filters?.search) {
-      const q = filters.search.toLowerCase();
-      results = results.filter(
-        (o) =>
-          o.title.toLowerCase().includes(q) ||
-          o.description.toLowerCase().includes(q) ||
-          o.subject.toLowerCase().includes(q) ||
-          o.provider_name.toLowerCase().includes(q)
-      );
-    }
-
-    if (filters?.subject && filters.subject !== 'all') {
-      results = results.filter((o) => o.subject.toLowerCase() === filters.subject!.toLowerCase());
-    }
-
-    if (filters?.level && filters.level !== 'all') {
-      results = results.filter((o) => o.target_level.toLowerCase().includes(filters.level!.toLowerCase()));
-    }
-
-    if (filters?.budget_max !== undefined && filters.budget_max > 0) {
-      results = results.filter((o) => o.price <= filters.budget_max!);
-    }
-
-    return results;
+  async getOpportunities(filters: { subject?: string; level?: string; budget_max?: number; location?: string; search?: string } = {}): Promise<Opportunity[]> {
+    if (!isSupabaseConfigured) return [];
+    const params = new URLSearchParams();
+    for (const [key, value] of Object.entries(filters)) if (value !== undefined && value !== '' && key !== 'search') params.set(key, String(value));
+    const response = await fetch(`${supabaseUrl}/functions/v1/search-opportunities?${params.toString()}`, {
+      headers: { apikey: supabaseAnonKey },
+    });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload?.error?.message ?? 'Unable to search opportunities');
+    const rows = unwrap<DbOpportunity[]>(payload);
+    const query = filters.search?.trim().toLowerCase();
+    return rows.map(toOpportunity).filter((row) => !query || [row.title, row.description, row.subject, row.provider_name].some((value) => value.toLowerCase().includes(query)));
   },
 
-  async upsertOpportunity(data: Partial<Opportunity>): Promise<Opportunity> {
-    if (isSupabaseConfigured) {
-      try {
-        const res = await fetch('/functions/v1/upsert-opportunity', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data),
-        });
-        const json = await res.json();
-        if (json.data) return json.data;
-      } catch (e) {
-        console.warn('Edge function upsert failed, updating mock store:', e);
-      }
-    }
-
-    if (data.id) {
-      opportunitiesStore = opportunitiesStore.map((o) => (o.id === data.id ? { ...o, ...data } : o));
-      return opportunitiesStore.find((o) => o.id === data.id)!;
-    }
-
-    const newOpp: Opportunity = {
-      id: `opp-${Date.now()}`,
-      provider_id: data.provider_id || 'prov-1',
-      provider_name: data.provider_name || 'DevAcademy Sri Lanka',
-      provider_verified: true,
-      title: data.title || 'Untitled Opportunity',
-      type: data.type || 'COURSE',
-      description: data.description || '',
-      subject: data.subject || 'General ICT',
-      target_level: data.target_level || 'All Levels',
-      price: Number(data.price) || 0,
-      delivery_mode: data.delivery_mode || 'online',
-      location: data.location || 'Online',
-      duration: data.duration || 'Flexible',
-      status: data.status || 'active',
-      created_at: new Date().toISOString(),
-    };
-
-    opportunitiesStore = [newOpp, ...opportunitiesStore];
-    impactMetricsStore.opportunities_count += 1;
-    return newOpp;
+  async upsertOpportunity(input: Partial<Opportunity>): Promise<Opportunity> {
+    const result = await invoke<{ id: string; embedded: boolean }>('upsert-opportunity', input);
+    const { data, error } = await supabase.from('opportunities').select('*').eq('id', result.id).single();
+    if (error) throw error;
+    return toOpportunity(data as DbOpportunity);
   },
 
   async getRecommendedOpportunities(learnerId: string): Promise<Opportunity[]> {
-    if (isSupabaseConfigured) {
-      try {
-        const res = await fetch('/functions/v1/match-opportunities', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ learner_id: learnerId, top_k: 5 }),
-        });
-        const json = await res.json();
-        if (json.data) return json.data;
-      } catch (e) {
-        console.warn('Matching edge function failed:', e);
-      }
-    }
-
-    // Return mock opportunities sorted by match_score
-    return opportunitiesStore
-      .filter((o) => o.status === 'active')
-      .slice(0, 4)
-      .map((o, idx) => ({
-        ...o,
-        match_score: o.match_score || Number((0.95 - idx * 0.05).toFixed(2)),
-      }));
+    const matches = await invoke<Array<{ opportunity_id: string; title: string; score: number }>>('match-opportunities', { learner_id: learnerId, top_k: 5 });
+    if (!matches.length) return [];
+    const { data, error } = await supabase.from('opportunities').select('*').in('id', matches.map((match) => match.opportunity_id));
+    if (error) throw error;
+    const byId = new Map<string, DbOpportunity>((data ?? []).map((row) => [(row as DbOpportunity).id, row as DbOpportunity]));
+    return matches.flatMap((match) => {
+      const row = byId.get(match.opportunity_id);
+      return row ? [{ ...toOpportunity(row), match_score: match.score }] : [];
+    });
+  },
+  async embedLearnerProfile(learnerId: string): Promise<void> { await invoke<{ embedded: boolean }>('embed-learner-profile', { learner_id: learnerId }); },
+  async embedProviderProfile(providerId: string): Promise<void> { await invoke<{ embedded: boolean }>('embed-provider-profile', { provider_id: providerId }); },
+  async updateLearnerProfile(userId: string, input: { education_level?: string; interests?: string[]; subjects?: string[]; location?: string; learning_goals?: string; budget_max?: number; availability?: string }): Promise<void> {
+    const { error } = await supabase.from('learner_profiles').upsert({ user_id: userId, ...input, updated_at: new Date().toISOString() });
+    if (error) throw error;
   },
 
-  // --- RAG ASSISTANT ---
-  async askRAGAssistant(question: string): Promise<RAGResponse> {
-    if (isSupabaseConfigured) {
-      try {
-        const res = await fetch('/functions/v1/rag-ask', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ question }),
-        });
-        const json = await res.json();
-        if (json.data) return json.data;
-      } catch (e) {
-        console.warn('RAG edge function failed:', e);
-      }
-    }
-
-    const qLower = question.toLowerCase();
-    const verifiedKB = knowledgeBaseStore.filter((kb) => kb.status === 'verified');
-
-    const matchedKB = verifiedKB.filter(
-      (kb) =>
-        kb.title.toLowerCase().includes(qLower) ||
-        kb.content.toLowerCase().includes(qLower) ||
-        qLower.split(' ').some((word) => word.length > 3 && kb.content.toLowerCase().includes(word))
-    );
-
-    if (matchedKB.length === 0) {
-      return {
-        answer: `I searched our verified educational knowledge base for: "${question}". Currently, no exact matching scholarships or opportunities were found in our database. You can request a personalized sponsorship or explore our available ICT courses.`,
-        sources: [],
-        confidence: 'low',
-      };
-    }
-
-    const sources = matchedKB.slice(0, 3).map((kb) => ({
-      id: kb.id,
-      title: kb.title,
-      category: kb.category,
-      source_url: kb.source_url,
-      snippet: kb.content.substring(0, 140) + '...',
-    }));
-
-    const answer = `Based on our verified knowledge base, here is what we found regarding your query:\n\n` +
-      matchedKB.map((kb) => `• **${kb.title}** (${kb.category.toUpperCase()}): ${kb.content}`).join('\n\n') +
-      `\n\nThese verified programs are designed to assist Sri Lankan students with tuition, practical coding experience, and industry placements.`;
-
-    return {
-      answer,
-      sources,
-      confidence: 'high',
-    };
+  async askRAGAssistant(question: string, learnerId?: string): Promise<RAGResponse> {
+    const response = await invoke<Omit<RAGResponse, 'confidence'>>('rag-ask', { question, learner_id: learnerId ?? null });
+    return { ...response, confidence: response.sources.length ? 'high' : 'low' };
   },
 
-  // --- BOOKINGS ---
-  async getBookings(learnerId?: string, providerId?: string): Promise<Booking[]> {
-    if (learnerId) {
-      return bookingsStore.filter((b) => b.learner_id === learnerId);
-    }
-    if (providerId) {
-      return bookingsStore.filter((b) => b.provider_id === providerId);
-    }
-    return bookingsStore;
+  async getBookings(learnerId?: string): Promise<Booking[]> {
+    let query = supabase.from('bookings').select('*, opportunities(title,type,price,provider_id)').order('requested_at', { ascending: false });
+    if (learnerId) query = query.eq('learner_id', learnerId);
+    const { data, error } = await query;
+    if (error) throw error;
+    return (data ?? []).map((row: Record<string, unknown>) => {
+      const opportunity = row.opportunities as Record<string, unknown> | null;
+      return { ...row, opportunity_title: opportunity?.title ?? 'Opportunity', opportunity_type: opportunity?.type ?? 'COURSE', provider_id: opportunity?.provider_id ?? '', provider_name: 'Provider', price: Number(opportunity?.price ?? 0), learner_name: 'Learner', date: row.requested_at, created_at: row.requested_at } as Booking;
+    });
   },
 
-  async createBooking(opportunityId: string, learnerName = 'Kamal Perera'): Promise<Booking> {
-    const opp = opportunitiesStore.find((o) => o.id === opportunityId) || opportunitiesStore[0];
-
-    const newBooking: Booking = {
-      id: `bk-${Date.now()}`,
-      opportunity_id: opp.id,
-      opportunity_title: opp.title,
-      opportunity_type: opp.type,
-      provider_id: opp.provider_id,
-      provider_name: opp.provider_name,
-      learner_id: 'learner-101',
-      learner_name: learnerName,
-      status: 'pending',
-      price: opp.price,
-      date: new Date(Date.now() + 7 * 86400000).toISOString(),
-      created_at: new Date().toISOString(),
-    };
-
-    bookingsStore = [newBooking, ...bookingsStore];
-    impactMetricsStore.total_bookings += 1;
-    return newBooking;
+  async createBooking(opportunityId: string): Promise<Booking> {
+    const result = await invoke<{ booking_id: string; status: Booking['status'] }>('create-booking', { opportunity_id: opportunityId });
+    return { id: result.booking_id, opportunity_id: opportunityId, status: result.status, opportunity_title: 'Opportunity', opportunity_type: 'COURSE', provider_id: '', provider_name: 'Provider', learner_id: '', learner_name: 'You', price: 0, date: new Date().toISOString(), created_at: new Date().toISOString() };
   },
 
   async respondBooking(bookingId: string, decision: 'accepted' | 'rejected'): Promise<Booking> {
-    bookingsStore = bookingsStore.map((b) => (b.id === bookingId ? { ...b, status: decision } : b));
-    return bookingsStore.find((b) => b.id === bookingId)!;
+    const result = await invoke<{ booking_id: string; status: Booking['status'] }>('respond-booking', { booking_id: bookingId, decision });
+    return { id: result.booking_id, status: result.status } as Booking;
   },
 
-  // --- SPONSORSHIPS ---
   async getSponsorships(): Promise<Sponsorship[]> {
-    return sponsorshipsStore;
+    const { data, error } = await supabase.from('sponsorships').select('*').order('created_at', { ascending: false });
+    if (error) throw error;
+    return (data ?? []).map((row) => ({ ...row, amount: Number(row.amount), sponsor_name: 'Sponsor' } as Sponsorship));
+  },
+  async createSponsorship(input: { learner_id?: string; opportunity_id?: string; amount: number }): Promise<Sponsorship> {
+    const result = await invoke<{ sponsorship_id: string; status: Sponsorship['status'] }>('create-sponsorship', input);
+    return { id: result.sponsorship_id, sponsor_id: '', sponsor_name: 'You', amount: input.amount, status: result.status, created_at: new Date().toISOString() } as Sponsorship;
   },
 
-  async getSponsorshipRequests(): Promise<SponsorshipRequest[]> {
-    return sponsorshipRequestsStore;
-  },
-
-  async createSponsorship(data: {
-    learner_id?: string;
-    learner_name?: string;
-    opportunity_id?: string;
-    opportunity_title?: string;
-    amount: number;
-    note?: string;
-  }): Promise<Sponsorship> {
-    const newSponsorship: Sponsorship = {
-      id: `sp-${Date.now()}`,
-      sponsor_id: 'spon-1',
-      sponsor_name: 'SLASSCOM Educational Fund',
-      learner_id: data.learner_id,
-      learner_name: data.learner_name || 'Kamal Perera',
-      opportunity_id: data.opportunity_id,
-      opportunity_title: data.opportunity_title,
-      amount: Number(data.amount),
-      status: 'pledged',
-      note: data.note || 'Sponsorship pledge confirmed.',
-      created_at: new Date().toISOString(),
-    };
-
-    sponsorshipsStore = [newSponsorship, ...sponsorshipsStore];
-    impactMetricsStore.sponsorship_amount += Number(data.amount);
-    impactMetricsStore.sponsored_learners += 1;
-    return newSponsorship;
-  },
-
-  // --- PROVIDERS ---
   async getProviders(): Promise<ProviderProfileData[]> {
-    return providersStore;
+    const { data, error } = await supabase.from('provider_profiles').select('*, users(full_name)').order('created_at', { ascending: false });
+    if (error) throw error;
+    return (data ?? []).map((row: Record<string, unknown>) => ({ id: row.user_id, user_id: row.user_id, organization_name: (row.users as { full_name?: string } | null)?.full_name ?? 'Provider', bio: row.bio as string | undefined, verification_status: row.status } as ProviderProfileData));
   },
-
   async verifyProvider(providerId: string, decision: 'verified' | 'rejected'): Promise<ProviderProfileData> {
-    providersStore = providersStore.map((p) => (p.id === providerId ? { ...p, verification_status: decision } : p));
-    return providersStore.find((p) => p.id === providerId)!;
+    const result = await invoke<{ provider_id: string; status: ProviderProfileData['verification_status'] }>('admin-verify-provider', { provider_id: providerId, decision });
+    return { id: result.provider_id, user_id: result.provider_id, organization_name: 'Provider', verification_status: result.status };
   },
-
-  // --- KNOWLEDGE BASE (ADMIN RAG) ---
   async getKnowledgeBase(): Promise<KnowledgeBaseEntry[]> {
-    return knowledgeBaseStore;
+    const { data, error } = await supabase.from('knowledge_base').select('*').order('updated_at', { ascending: false });
+    if (error) throw error;
+    return (data ?? []) as KnowledgeBaseEntry[];
   },
-
-  async upsertKnowledgeBaseEntry(data: Partial<KnowledgeBaseEntry>): Promise<KnowledgeBaseEntry> {
-    if (data.id) {
-      knowledgeBaseStore = knowledgeBaseStore.map((kb) => (kb.id === data.id ? { ...kb, ...data } as KnowledgeBaseEntry : kb));
-      return knowledgeBaseStore.find((kb) => kb.id === data.id)!;
-    }
-
-    const newKb: KnowledgeBaseEntry = {
-      id: `kb-${Date.now()}`,
-      category: data.category || 'scholarship',
-      title: data.title || 'Untitled Entry',
-      content: data.content || '',
-      source_url: data.source_url,
-      status: data.status || 'draft',
-      created_at: new Date().toISOString(),
-    };
-
-    knowledgeBaseStore = [newKb, ...knowledgeBaseStore];
-    return newKb;
+  async upsertKnowledgeBaseEntry(input: Partial<KnowledgeBaseEntry>): Promise<KnowledgeBaseEntry> {
+    const result = await invoke<{ id: string }>('admin-upsert-knowledge', input);
+    const { data, error } = await supabase.from('knowledge_base').select('*').eq('id', result.id).single();
+    if (error) throw error;
+    return data as KnowledgeBaseEntry;
   },
-
-  async toggleKnowledgeStatus(id: string): Promise<KnowledgeBaseEntry> {
-    knowledgeBaseStore = knowledgeBaseStore.map((kb) => {
-      if (kb.id === id) {
-        return {
-          ...kb,
-          status: kb.status === 'verified' ? 'draft' : 'verified',
-        };
-      }
-      return kb;
-    });
-    return knowledgeBaseStore.find((kb) => kb.id === id)!;
+  async toggleKnowledgeStatus(entry: KnowledgeBaseEntry): Promise<KnowledgeBaseEntry> {
+    return this.upsertKnowledgeBaseEntry({ ...entry, status: entry.status === 'verified' ? 'draft' : 'verified' });
   },
-
-  // --- IMPACT METRICS ---
-  async getImpactSummary(): Promise<ImpactMetrics> {
-    if (isSupabaseConfigured) {
-      try {
-        const res = await fetch('/functions/v1/impact-summary');
-        const json = await res.json();
-        if (json.data) return json.data;
-      } catch (e) {
-        console.warn('Impact summary endpoint failed:', e);
-      }
-    }
-    return impactMetricsStore;
-  },
+  async getImpactSummary(): Promise<ImpactMetrics> { return invoke<ImpactMetrics>('impact-summary'); },
 };

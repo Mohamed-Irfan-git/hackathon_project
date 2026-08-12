@@ -1,5 +1,5 @@
 import React from 'react';
-import type { UserRole, Opportunity } from '../types';
+import type { Opportunity } from '../types';
 import { OpportunityCard } from '../components/common/OpportunityCard';
 import {
   Sparkles,
@@ -14,19 +14,19 @@ import {
 } from 'lucide-react';
 
 interface LandingPageProps {
-  onNavigateRole: (role: UserRole) => void;
   onOpenAuth: (mode: 'login' | 'register') => void;
   featuredOpportunities: Opportunity[];
   onSelectOpportunity: (opp: Opportunity) => void;
   onNavigateRAG: () => void;
+  onExplore: () => void;
 }
 
 export const LandingPage: React.FC<LandingPageProps> = ({
-  onNavigateRole,
   onOpenAuth,
   featuredOpportunities,
   onSelectOpportunity,
   onNavigateRAG,
+  onExplore,
 }) => {
   return (
     <div className="space-y-16 pb-16">
@@ -154,7 +154,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           </div>
           <button
             type="button"
-            onClick={() => onNavigateRole('learner')}
+            onClick={onExplore}
             className="text-xs font-semibold text-[#00647c] hover:underline font-geist flex items-center gap-1"
           >
             <span>Explore All</span>
@@ -178,16 +178,16 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       <section className="bg-[#e6eeff] rounded-3xl p-8 sm:p-12 border border-[#d9e3f6]">
         <div className="max-w-3xl mx-auto text-center space-y-6">
           <h2 className="text-2xl sm:text-3xl font-bold text-[#121c2a] font-display">
-            Select Your Role to Enter the Demo Platform
+            Join the platform in the role that fits you
           </h2>
           <p className="text-sm text-[#3e484d]">
-            Test out each persona to see how Striver serves learners, educators, sponsors, and platform administrators.
+            Create an account to unlock a role-specific workspace. Your permissions and navigation are assigned securely after sign-in.
           </p>
 
           <div className="grid sm:grid-cols-4 gap-3 pt-2">
             <button
               type="button"
-              onClick={() => onNavigateRole('learner')}
+              onClick={() => onOpenAuth('register')}
               className="p-4 bg-white rounded-xl border border-[#d9e3f6] hover:border-[#00647c] shadow-xs text-center flex flex-col items-center gap-2 transition-all hover:-translate-y-0.5"
             >
               <GraduationCap size={24} className="text-[#00647c]" />
@@ -196,7 +196,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
             <button
               type="button"
-              onClick={() => onNavigateRole('provider')}
+              onClick={() => onOpenAuth('register')}
               className="p-4 bg-white rounded-xl border border-[#d9e3f6] hover:border-[#00647c] shadow-xs text-center flex flex-col items-center gap-2 transition-all hover:-translate-y-0.5"
             >
               <Building2 size={24} className="text-[#00647c]" />
@@ -205,7 +205,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
             <button
               type="button"
-              onClick={() => onNavigateRole('sponsor')}
+              onClick={() => onOpenAuth('register')}
               className="p-4 bg-white rounded-xl border border-[#d9e3f6] hover:border-[#00647c] shadow-xs text-center flex flex-col items-center gap-2 transition-all hover:-translate-y-0.5"
             >
               <Heart size={24} className="text-[#00647c]" />
@@ -214,7 +214,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
             <button
               type="button"
-              onClick={() => onNavigateRole('admin')}
+              onClick={() => onOpenAuth('login')}
               className="p-4 bg-white rounded-xl border border-[#d9e3f6] hover:border-[#00647c] shadow-xs text-center flex flex-col items-center gap-2 transition-all hover:-translate-y-0.5"
             >
               <Users size={24} className="text-[#00647c]" />

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import type {
   UserRole,
   Opportunity,
@@ -11,10 +11,10 @@ import type {
   LearnerProfileData,
 } from './types';
 import { api } from './services/api';
-import { MOCK_LEARNER } from './services/mockData';
 import { Header } from './components/common/Header';
 import { Sidebar, type NavTab } from './components/common/Sidebar';
 import { AuthModal } from './components/auth/AuthModal';
+import { isSupabaseConfigured, supabase } from './lib/supabase';
 
 // Views
 import { LandingPage } from './views/LandingPage';
@@ -32,24 +32,18 @@ export function App() {
   const [activeTab, setActiveTab] = useState<NavTab>('learner-dashboard');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userName, setUserName] = useState('Kamal Perera');
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   // Domain data
-  const [learnerProfile] = useState<LearnerProfileData>(MOCK_LEARNER);
+  const [learnerProfile, setLearnerProfile] = useState<LearnerProfileData | null>(null);
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
   const [recommendedOpps, setRecommendedOpps] = useState<Opportunity[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [sponsorships, setSponsorships] = useState<Sponsorship[]>([]);
-  const [sponsorshipRequests, setSponsorshipRequests] = useState<SponsorshipRequest[]>([]);
+  const [sponsorshipRequests] = useState<SponsorshipRequest[]>([]);
   const [knowledgeBase, setKnowledgeBase] = useState<KnowledgeBaseEntry[]>([]);
   const [providers, setProviders] = useState<ProviderProfileData[]>([]);
-  const [impactMetrics, setImpactMetrics] = useState<ImpactMetrics>({
-    active_providers: 18,
-    learners_supported: 1420,
-    total_bookings: 385,
-    sponsored_learners: 42,
-    sponsorship_amount: 575000,
-    opportunities_count: 26,
-  });
+  const [impactMetrics, setImpactMetrics] = useState<ImpactMetrics>({ active_providers: 0, learners_supported: 0, total_bookings: 0, sponsored_learners: 0, sponsorship_amount: 0, opportunities_count: 0 });
 
   // UI state
   const [isAuthOpen, setIsAuthOpen] = useState(false);
@@ -57,6 +51,8 @@ export function App() {
   const [ragInitialQuery, setRagInitialQuery] = useState<string | undefined>();
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [profileForm, setProfileForm] = useState({ education_level: '', interests: '', subjects: '', location: '', learning_goals: '', budget_max: '', availability: '' });
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -64,34 +60,47 @@ export function App() {
   };
 
   // Load initial data from service
-  const loadData = async () => {
-    const opps = await api.getOpportunities();
-    setOpportunities(opps);
-
-    const recs = await api.getRecommendedOpportunities(learnerProfile.id);
-    setRecommendedOpps(recs);
-
-    const bks = await api.getBookings(learnerProfile.id);
-    setBookings(bks);
-
-    const sps = await api.getSponsorships();
-    setSponsorships(sps);
-
-    const reqs = await api.getSponsorshipRequests();
-    setSponsorshipRequests(reqs);
-
-    const kb = await api.getKnowledgeBase();
-    setKnowledgeBase(kb);
-
-    const provs = await api.getProviders();
-    setProviders(provs);
-
-    const metrics = await api.getImpactSummary();
-    setImpactMetrics(metrics);
+  const loadData = async (userId?: string, userRole?: UserRole) => {
+    setIsLoading(true);
+    try {
+      setOpportunities(await api.getOpportunities());
+      if (!userId || !userRole) return;
+      if (userRole === 'learner') {
+        const { data } = await supabase.from('learner_profiles').select('*').eq('user_id', userId).single();
+        if (data) {
+          setLearnerProfile({ id: data.user_id, user_id: data.user_id, full_name: userName, education_level: data.education_level, field_of_interest: data.interests?.join(', '), budget_max: data.budget_max ? Number(data.budget_max) : undefined, location: data.location });
+          setProfileForm({ education_level: data.education_level ?? '', interests: data.interests?.join(', ') ?? '', subjects: data.subjects?.join(', ') ?? '', location: data.location ?? '', learning_goals: data.learning_goals ?? '', budget_max: data.budget_max?.toString() ?? '', availability: data.availability ?? '' });
+        }
+        try { setRecommendedOpps(await api.getRecommendedOpportunities(userId)); } catch { setRecommendedOpps([]); }
+        setBookings(await api.getBookings(userId));
+      }
+      if (userRole === 'sponsor') setSponsorships(await api.getSponsorships());
+      if (userRole === 'admin') {
+        const [metrics, kb, providerRows] = await Promise.all([api.getImpactSummary(), api.getKnowledgeBase(), api.getProviders()]);
+        setImpactMetrics(metrics); setKnowledgeBase(kb); setProviders(providerRows);
+      }
+      if (userRole === 'provider') {
+        const { data } = await supabase.from('provider_profiles').select('*').eq('user_id', userId).single();
+        if (data) setProviders([{ id: data.user_id, user_id: data.user_id, organization_name: userName, bio: data.bio, verification_status: data.status }]);
+        setBookings(await api.getBookings());
+      }
+    } catch (error) { showToast(error instanceof Error ? error.message : 'Unable to load live data.'); }
+    finally { setIsLoading(false); }
   };
 
   useEffect(() => {
-    loadData();
+    void loadData();
+  }, []);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured) return;
+    supabase.auth.getUser().then(async (result) => {
+      const data = result.data;
+      if (!data.user) return;
+      const { data: appUser } = await supabase.from('users').select('role, full_name').eq('id', data.user.id).single();
+      setIsLoggedIn(true); setCurrentUserId(data.user.id); setUserName(appUser?.full_name || data.user.email || 'User');
+      if (appUser?.role) { handleRoleChange(appUser.role); void loadData(data.user.id, appUser.role); }
+    });
   }, []);
 
   // Sync role switch with default tabs
@@ -105,27 +114,24 @@ export function App() {
 
   // Handlers for user interactions
   const handleBookOpportunity = async (opp: Opportunity) => {
-    const newBk = await api.createBooking(opp.id, userName);
-    setBookings((prev) => [newBk, ...prev]);
-    showToast(`Booking requested for "${opp.title}"! Status: Pending.`);
+    try { await api.createBooking(opp.id); await loadData(learnerProfile?.user_id, 'learner'); showToast(`Booking requested for "${opp.title}".`); } catch (error) { showToast(error instanceof Error ? error.message : 'Booking failed.'); }
   };
 
   const handleAskRAG = (query: string) => {
     setRagInitialQuery(query);
-    if (role === 'public') setRole('learner');
     setActiveTab('rag');
   };
+  const handleSearchOpportunities = useCallback(async (filters: { subject?: string; level?: string; location?: string; search?: string }) => {
+    try { setOpportunities(await api.getOpportunities(filters)); }
+    catch (error) { showToast(error instanceof Error ? error.message : 'Search failed.'); }
+  }, []);
 
   const handleRespondBooking = async (bookingId: string, decision: 'accepted' | 'rejected') => {
-    const updated = await api.respondBooking(bookingId, decision);
-    setBookings((prev) => prev.map((b) => (b.id === bookingId ? updated : b)));
-    showToast(`Booking request ${decision}!`);
+    try { await api.respondBooking(bookingId, decision); await loadData(); showToast(`Booking request ${decision}.`); } catch (error) { showToast(error instanceof Error ? error.message : 'Booking update failed.'); }
   };
 
   const handleCreateOpportunity = async (data: Partial<Opportunity>) => {
-    const newOpp = await api.upsertOpportunity(data);
-    setOpportunities((prev) => [newOpp, ...prev]);
-    showToast(`Opportunity "${newOpp.title}" created & embedded for AI matching!`);
+    try { const newOpp = await api.upsertOpportunity(data); setOpportunities((prev) => [newOpp, ...prev]); showToast(`Opportunity "${newOpp.title}" saved and embedded.`); } catch (error) { showToast(error instanceof Error ? error.message : 'Opportunity save failed.'); }
   };
 
   const handleCreatePledge = async (
@@ -133,14 +139,12 @@ export function App() {
     amount: number,
     note: string
   ) => {
-    const newSponsorship = await api.createSponsorship({
+    void note;
+    try { const newSponsorship = await api.createSponsorship({
       learner_id: req.learner_id,
-      learner_name: req.learner_name,
       amount,
-      note,
     });
-    setSponsorships((prev) => [newSponsorship, ...prev]);
-    showToast(`Pledged LKR ${amount.toLocaleString()} for ${req.learner_name}!`);
+    setSponsorships((prev) => [newSponsorship, ...prev]); showToast(`Pledged LKR ${amount.toLocaleString()} for ${req.learner_name}.`); } catch (error) { showToast(error instanceof Error ? error.message : 'Sponsorship failed.'); }
   };
 
   const handleVerifyProvider = async (providerId: string, decision: 'verified' | 'rejected') => {
@@ -156,24 +160,24 @@ export function App() {
   };
 
   const handleToggleKnowledgeStatus = async (id: string) => {
-    const updated = await api.toggleKnowledgeStatus(id);
+    const entry = knowledgeBase.find((item) => item.id === id); if (!entry) return;
+    const updated = await api.toggleKnowledgeStatus(entry);
     setKnowledgeBase((prev) => prev.map((kb) => (kb.id === id ? updated : kb)));
     showToast(`Entry status toggled to ${updated.status}!`);
   };
 
-  const currentProvider = providers[0] || {
-    id: 'prov-1',
-    user_id: 'usr-prov-1',
-    organization_name: 'DevAcademy Sri Lanka',
-    verification_status: 'verified',
-  };
+  const displayedLearner: LearnerProfileData = learnerProfile ?? { id: currentUserId ?? '', user_id: currentUserId ?? '', full_name: userName };
+  const currentProvider = providers.find((provider) => provider.user_id === currentUserId) || { id: currentUserId ?? '', user_id: currentUserId ?? '', organization_name: userName, verification_status: 'pending' as const };
 
   return (
     <div className="min-h-screen bg-[#f8f9ff] flex flex-col font-sans">
       {/* Header */}
       <Header
         currentRole={role}
-        onRoleChange={handleRoleChange}
+        onHome={() => {
+          if (isLoggedIn) handleRoleChange(role);
+          else { setRole('public'); setActiveTab('learner-dashboard'); }
+        }}
         onOpenAuth={(mode) => {
           setAuthMode(mode);
           setIsAuthOpen(true);
@@ -183,6 +187,7 @@ export function App() {
         userName={userName}
         isLoggedIn={isLoggedIn}
         onLogout={() => {
+          void supabase.auth.signOut();
           setIsLoggedIn(false);
           setRole('public');
           showToast('Signed out successfully.');
@@ -202,21 +207,32 @@ export function App() {
 
         {/* Content Area */}
         <main className="flex-1 p-4 sm:p-6 lg:p-8 min-w-0">
+          {isLoading && <div className="rounded-xl border border-[#d9e3f6] bg-white p-4 text-xs text-[#6e797e]">Loading live Supabase data…</div>}
           {/* Public Landing View */}
-          {role === 'public' && (
+          {role === 'public' && activeTab !== 'discover' && activeTab !== 'rag' && (
             <LandingPage
-              onNavigateRole={handleRoleChange}
               onOpenAuth={(mode) => {
                 setAuthMode(mode);
                 setIsAuthOpen(true);
               }}
               featuredOpportunities={opportunities}
-              onSelectOpportunity={() => {
-                handleRoleChange('learner');
-                setActiveTab('discover');
-              }}
+              onSelectOpportunity={() => setIsAuthOpen(true)}
               onNavigateRAG={() => handleAskRAG('What scholarships are available?')}
+              onExplore={() => setActiveTab('discover')}
             />
+          )}
+
+          {role === 'public' && activeTab === 'discover' && (
+            <DiscoverOpportunities
+              opportunities={opportunities}
+              onBookOpportunity={() => { setAuthMode('register'); setIsAuthOpen(true); showToast('Create a learner account to book an opportunity.'); }}
+              onAskRAG={handleAskRAG}
+              onSearch={handleSearchOpportunities}
+            />
+          )}
+
+          {role === 'public' && activeTab === 'rag' && (
+            <RAGAssistant initialQuery={ragInitialQuery} onClearInitialQuery={() => setRagInitialQuery(undefined)} />
           )}
 
           {/* Learner Views */}
@@ -224,7 +240,7 @@ export function App() {
             <>
               {activeTab === 'learner-dashboard' && (
                 <LearnerDashboard
-                  profile={learnerProfile}
+                  profile={displayedLearner}
                   recommendedOpportunities={recommendedOpps}
                   upcomingBookings={bookings.filter((b) => b.status === 'accepted')}
                   onSelectOpportunity={() => setActiveTab('discover')}
@@ -239,6 +255,7 @@ export function App() {
                   opportunities={opportunities}
                   onBookOpportunity={handleBookOpportunity}
                   onAskRAG={handleAskRAG}
+                  onSearch={handleSearchOpportunities}
                 />
               )}
 
@@ -252,6 +269,7 @@ export function App() {
               {activeTab === 'rag' && (
                 <RAGAssistant
                   initialQuery={ragInitialQuery}
+                  learnerId={currentUserId ?? undefined}
                   onClearInitialQuery={() => setRagInitialQuery(undefined)}
                 />
               )}
@@ -268,7 +286,18 @@ export function App() {
               {activeTab === 'profile' && (
                 <div className="bg-white rounded-2xl border border-[#d9e3f6] p-6 shadow-xs max-w-2xl space-y-4">
                   <h2 className="text-xl font-bold text-[#121c2a] font-display">Learner Profile & Embedding Settings</h2>
-                  <div className="space-y-3 text-xs text-[#3e484d]">
+                  <form className="space-y-3 text-xs text-[#3e484d]" onSubmit={async (event) => {
+                    event.preventDefault();
+                    if (!currentUserId) return;
+                    try {
+                      const { error: userError } = await supabase.from('users').update({ full_name: userName, updated_at: new Date().toISOString() }).eq('id', currentUserId);
+                      if (userError) throw userError;
+                      await api.updateLearnerProfile(currentUserId, { education_level: profileForm.education_level, interests: profileForm.interests.split(',').map((item) => item.trim()).filter(Boolean), subjects: profileForm.subjects.split(',').map((item) => item.trim()).filter(Boolean), location: profileForm.location, learning_goals: profileForm.learning_goals, budget_max: profileForm.budget_max ? Number(profileForm.budget_max) : undefined, availability: profileForm.availability });
+                      await api.embedLearnerProfile(currentUserId);
+                      await loadData(currentUserId, 'learner');
+                      showToast('Profile saved and AI matching embedding refreshed.');
+                    } catch (error) { showToast(error instanceof Error ? error.message : 'Profile update failed.'); }
+                  }}>
                     <div>
                       <label className="font-semibold block text-[#121c2a]">Full Name</label>
                       <input
@@ -282,28 +311,32 @@ export function App() {
                       <label className="font-semibold block text-[#121c2a]">Education Level</label>
                       <input
                         type="text"
-                        value={learnerProfile.education_level}
-                        readOnly
-                        className="w-full px-3 py-2 border rounded-lg bg-gray-50 mt-1"
+                        value={profileForm.education_level}
+                        onChange={(event) => setProfileForm((current) => ({ ...current, education_level: event.target.value }))}
+                        className="w-full px-3 py-2 border rounded-lg mt-1"
                       />
                     </div>
                     <div>
                       <label className="font-semibold block text-[#121c2a]">Field of Interest</label>
                       <input
                         type="text"
-                        value={learnerProfile.field_of_interest}
-                        readOnly
-                        className="w-full px-3 py-2 border rounded-lg bg-gray-50 mt-1"
+                        value={profileForm.interests}
+                        onChange={(event) => setProfileForm((current) => ({ ...current, interests: event.target.value }))}
+                        placeholder="e.g. ICT, web development"
+                        className="w-full px-3 py-2 border rounded-lg mt-1"
                       />
                     </div>
+                    <input value={profileForm.subjects} onChange={(event) => setProfileForm((current) => ({ ...current, subjects: event.target.value }))} placeholder="Subjects, comma separated" className="w-full px-3 py-2 border rounded-lg" />
+                    <input value={profileForm.location} onChange={(event) => setProfileForm((current) => ({ ...current, location: event.target.value }))} placeholder="Location" className="w-full px-3 py-2 border rounded-lg" />
+                    <input value={profileForm.budget_max} type="number" min="0" onChange={(event) => setProfileForm((current) => ({ ...current, budget_max: event.target.value }))} placeholder="Maximum budget (LKR)" className="w-full px-3 py-2 border rounded-lg" />
+                    <textarea value={profileForm.learning_goals} onChange={(event) => setProfileForm((current) => ({ ...current, learning_goals: event.target.value }))} placeholder="Learning goals" className="w-full px-3 py-2 border rounded-lg" />
                     <button
-                      type="button"
-                      onClick={() => showToast('Learner vector embedding regenerated!')}
+                      type="submit"
                       className="px-4 py-2 bg-[#00647c] text-white font-semibold rounded-lg font-geist"
                     >
-                      Regenerate Match Embedding
+                      Save profile & regenerate match embedding
                     </button>
-                  </div>
+                  </form>
                 </div>
               )}
             </>
@@ -318,7 +351,7 @@ export function App() {
                 activeTab === 'provider-profile') && (
                 <ProviderDashboard
                   provider={currentProvider}
-                  opportunities={opportunities.filter((o) => o.provider_id === currentProvider.id || true)}
+                  opportunities={opportunities.filter((o) => o.provider_id === currentProvider.user_id)}
                   bookings={bookings}
                   onCreateOpportunity={handleCreateOpportunity}
                   onRespondBooking={handleRespondBooking}
@@ -382,6 +415,9 @@ export function App() {
             setIsLoggedIn(true);
             setUserName(name);
             handleRoleChange(selectedRole);
+            void supabase.auth.getUser().then(({ data }) => {
+              if (data.user) { setCurrentUserId(data.user.id); void loadData(data.user.id, selectedRole); }
+            });
             showToast(`Welcome ${name}! Switched to ${selectedRole} profile.`);
           }}
         />

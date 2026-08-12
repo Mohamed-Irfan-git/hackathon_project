@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import type { Opportunity } from '../types';
 import { OpportunityCard } from '../components/common/OpportunityCard';
 import { Modal } from '../components/common/Modal';
@@ -10,12 +10,14 @@ interface DiscoverOpportunitiesProps {
   opportunities: Opportunity[];
   onBookOpportunity: (opp: Opportunity) => void;
   onAskRAG: (query: string) => void;
+  onSearch?: (filters: { subject?: string; level?: string; location?: string; search?: string }) => void;
 }
 
 export const DiscoverOpportunities: React.FC<DiscoverOpportunitiesProps> = ({
   opportunities,
   onBookOpportunity,
   onAskRAG,
+  onSearch,
 }) => {
   const [search, setSearch] = useState('');
   const [subjectFilter, setSubjectFilter] = useState('all');
@@ -23,6 +25,11 @@ export const DiscoverOpportunities: React.FC<DiscoverOpportunitiesProps> = ({
   const [deliveryFilter, setDeliveryFilter] = useState('all');
   const [tab, setTab] = useState<'all' | 'ai'>('all');
   const [selectedOpp, setSelectedOpp] = useState<Opportunity | null>(null);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => onSearch?.({ subject: subjectFilter === 'all' ? undefined : subjectFilter, level: levelFilter === 'all' ? undefined : levelFilter, search }), 250);
+    return () => window.clearTimeout(timer);
+  }, [search, subjectFilter, levelFilter, onSearch]);
 
   const filteredOpportunities = opportunities.filter((opp) => {
     if (tab === 'ai' && (!opp.match_score || opp.match_score < 0.8)) return false;

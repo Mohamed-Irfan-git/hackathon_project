@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import type { UserRole } from '../../types';
 import { Modal } from '../common/Modal';
 import { GraduationCap, Building2, Heart, Mail, Lock, User, ArrowRight } from 'lucide-react';
+import { isSupabaseConfigured, supabase } from '../../lib/supabase';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -22,10 +23,29 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [email, setEmail] = useState('kamal.perera@example.com');
   const [password, setPassword] = useState('password123');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSuccess(mode === 'register' ? selectedRole : 'learner', fullName || 'Demo User');
-    onClose();
+    setError(null); setIsSubmitting(true);
+    try {
+      if (!isSupabaseConfigured) throw new Error('Supabase is not configured. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
+      if (mode === 'login') {
+        const { data, error: authError } = await supabase.auth.signInWithPassword({ email, password });
+        if (authError || !data.user) throw authError || new Error('Sign in failed');
+        const { data: appUser } = await supabase.from('users').select('role, full_name').eq('id', data.user.id).single();
+        onSuccess((appUser?.role || 'learner') as UserRole, appUser?.full_name || data.user.email || 'User');
+      } else {
+        const { data, error: authError } = await supabase.auth.signUp({ email, password });
+        if (authError || !data.user) throw authError || new Error('Sign up failed');
+        if (!data.session) throw new Error('Check your email to confirm the account, then sign in.');
+        const { error: profileError } = await supabase.functions.invoke('complete-profile', { body: { role: selectedRole, full_name: fullName, profile: {} } });
+        if (profileError) throw profileError;
+        onSuccess(selectedRole, fullName);
+      }
+      onClose();
+    } catch (err) { setError(err instanceof Error ? err.message : 'Authentication failed'); }
+    finally { setIsSubmitting(false); }
   };
 
   return (
@@ -133,11 +153,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
         <button
           type="submit"
+          disabled={isSubmitting}
           className="w-full py-2.5 bg-[#00647c] hover:bg-[#004e61] text-white text-xs font-semibold rounded-lg transition-colors flex items-center justify-center gap-2 shadow-xs mt-2"
         >
-          <span>{mode === 'login' ? 'Sign In' : 'Complete Registration'}</span>
+          <span>{isSubmitting ? 'Please wait…' : mode === 'login' ? 'Sign In' : 'Complete Registration'}</span>
           <ArrowRight size={14} />
         </button>
+        {error && <p role="alert" className="text-xs text-red-600">{error}</p>}
 
         <div className="text-center pt-2 border-t border-[#eff4ff]">
           {mode === 'login' ? (
