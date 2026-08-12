@@ -99,7 +99,19 @@ export function App() {
     supabase.auth.getUser().then(async (result) => {
       const data = result.data;
       if (!data.user) return;
-      const { data: appUser } = await supabase.from('users').select('role, full_name').eq('id', data.user.id).single();
+      let { data: appUser } = await supabase.from('users').select('role, full_name').eq('id', data.user.id).maybeSingle();
+      if (!appUser) {
+        const metadata = data.user.user_metadata ?? {};
+        const role = ['learner', 'provider', 'sponsor'].includes(metadata.app_role)
+          ? metadata.app_role as UserRole
+          : 'learner';
+        const fullName = typeof metadata.full_name === 'string' && metadata.full_name.trim()
+          ? metadata.full_name.trim()
+          : data.user.email?.split('@')[0] || 'User';
+        const { error } = await supabase.functions.invoke('complete-profile', { body: { role, full_name: fullName, profile: {} } });
+        if (error) throw error;
+        ({ data: appUser } = await supabase.from('users').select('role, full_name').eq('id', data.user.id).single());
+      }
       setIsLoggedIn(true); setCurrentUserId(data.user.id); setUserName(appUser?.full_name || data.user.email || 'User');
       if (appUser?.role) { handleRoleChange(appUser.role); void loadData(data.user.id, appUser.role); }
     }).finally(() => setIsAuthLoading(false));
