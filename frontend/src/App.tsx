@@ -52,6 +52,7 @@ export function App() {
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [bookingOpportunityId, setBookingOpportunityId] = useState<string | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(isSupabaseConfigured);
   const [profileForm, setProfileForm] = useState({ education_level: '', interests: '', subjects: '', location: '', learning_goals: '', budget_max: '', availability: '' });
 
@@ -115,7 +116,15 @@ export function App() {
 
   // Handlers for user interactions
   const handleBookOpportunity = async (opp: Opportunity) => {
-    try { await api.createBooking(opp.id); await loadData(learnerProfile?.user_id, 'learner'); showToast(`Booking requested for "${opp.title}".`); } catch (error) { showToast(error instanceof Error ? error.message : 'Booking failed.'); }
+    if (!currentUserId) { setAuthMode('login'); setIsAuthOpen(true); return; }
+    setBookingOpportunityId(opp.id);
+    try {
+      await api.createBooking(opp.id);
+      await loadData(currentUserId, 'learner');
+      setActiveTab('bookings');
+      showToast(`Booking requested for "${opp.title}". You can track its status in My Bookings.`);
+    } catch (error) { showToast(error instanceof Error ? error.message : 'Booking failed.'); }
+    finally { setBookingOpportunityId(null); }
   };
 
   const handleAskRAG = (query: string) => {
@@ -245,6 +254,9 @@ export function App() {
               onAskRAG={handleAskRAG}
               onSearch={handleSearchOpportunities}
               recommendedOpportunities={recommendedOpps}
+              bookingOpportunityId={bookingOpportunityId}
+              bookings={bookings}
+              isAuthenticated={false}
             />
           )}
 
@@ -274,6 +286,9 @@ export function App() {
                   onAskRAG={handleAskRAG}
                   onSearch={handleSearchOpportunities}
                   recommendedOpportunities={recommendedOpps}
+                  bookingOpportunityId={bookingOpportunityId}
+                  bookings={bookings}
+                  isAuthenticated={isLoggedIn && role === 'learner'}
                 />
               )}
 

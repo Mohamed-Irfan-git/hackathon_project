@@ -1,5 +1,5 @@
 import React from 'react';
-import type { Opportunity } from '../../types';
+import type { BookingStatus, Opportunity } from '../../types';
 import { AITag } from './AITag';
 import { Clock, MapPin, Video, CheckCircle2, MessageSquareText } from 'lucide-react';
 
@@ -8,6 +8,9 @@ interface OpportunityCardProps {
   onSelect?: (opp: Opportunity) => void;
   onAskAI?: (opp: Opportunity) => void;
   onBook?: (opp: Opportunity) => void;
+  isBooking?: boolean;
+  bookingStatus?: BookingStatus;
+  isAuthenticated?: boolean;
 }
 
 export const OpportunityCard: React.FC<OpportunityCardProps> = ({
@@ -15,8 +18,19 @@ export const OpportunityCard: React.FC<OpportunityCardProps> = ({
   onSelect,
   onAskAI,
   onBook,
+  isBooking = false,
+  bookingStatus,
+  isAuthenticated = false,
 }) => {
   const isFree = opportunity.price === 0;
+  const bookingLabel: Record<BookingStatus, string> = {
+    pending: 'Request sent', accepted: 'Enrolled', rejected: 'Request declined', completed: 'Completed', cancelled: 'Cancelled',
+  };
+  const actionLabel = isBooking
+    ? 'Sending request…'
+    : bookingStatus
+      ? bookingLabel[bookingStatus]
+      : isAuthenticated ? 'Request to enroll' : 'Sign in to enroll';
 
   return (
     <div className="bg-white rounded-xl border border-[#d9e3f6] p-5 shadow-xs hover:shadow-md hover:border-[#00647c] transition-all flex flex-col justify-between group">
@@ -107,10 +121,11 @@ export const OpportunityCard: React.FC<OpportunityCardProps> = ({
 
           <button
             type="button"
+            disabled={isBooking || Boolean(bookingStatus)}
             onClick={() => onBook ? onBook(opportunity) : onSelect?.(opportunity)}
-            className="px-3.5 py-2 bg-[#00647c] hover:bg-[#004e61] text-white text-xs font-semibold rounded-lg transition-colors shadow-xs"
+            className="px-3.5 py-2 bg-[#00647c] hover:bg-[#004e61] disabled:cursor-wait disabled:opacity-60 text-white text-xs font-semibold rounded-lg transition-colors shadow-xs"
           >
-            Book / Enroll
+            {actionLabel}
           </button>
         </div>
       </div>

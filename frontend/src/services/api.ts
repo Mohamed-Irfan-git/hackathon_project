@@ -16,7 +16,19 @@ const unwrap = <T>(payload: unknown): T => {
 async function invoke<T>(name: string, body?: unknown): Promise<T> {
   const payload = body === undefined || body === null ? undefined : body as Record<string, unknown>;
   const { data, error } = await supabase.functions.invoke(name, payload === undefined ? undefined : { body: payload });
-  if (error) throw error;
+  if (error) {
+    // Edge Functions return useful validation/authorization messages in their response body.
+    // Surface those to the UI instead of the opaque "FunctionsHttpError" message.
+    const response = error.context;
+    if (response instanceof Response) {
+      const details = await response.clone().json().catch(() => null) as { error?: { message?: string } | string; message?: string } | null;
+      const message = typeof details?.error === 'string'
+        ? details.error
+        : details?.error?.message ?? details?.message;
+      if (message) throw new Error(message);
+    }
+    throw error;
+  }
   return unwrap<T>(data);
 }
 
