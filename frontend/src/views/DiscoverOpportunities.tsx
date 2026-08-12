@@ -11,6 +11,7 @@ interface DiscoverOpportunitiesProps {
   onBookOpportunity: (opp: Opportunity) => void;
   onAskRAG: (query: string) => void;
   onSearch?: (filters: { subject?: string; level?: string; location?: string; search?: string }) => void;
+  recommendedOpportunities?: Opportunity[];
 }
 
 export const DiscoverOpportunities: React.FC<DiscoverOpportunitiesProps> = ({
@@ -18,6 +19,7 @@ export const DiscoverOpportunities: React.FC<DiscoverOpportunitiesProps> = ({
   onBookOpportunity,
   onAskRAG,
   onSearch,
+  recommendedOpportunities = [],
 }) => {
   const [search, setSearch] = useState('');
   const [subjectFilter, setSubjectFilter] = useState('all');
@@ -31,8 +33,8 @@ export const DiscoverOpportunities: React.FC<DiscoverOpportunitiesProps> = ({
     return () => window.clearTimeout(timer);
   }, [search, subjectFilter, levelFilter, onSearch]);
 
-  const filteredOpportunities = opportunities.filter((opp) => {
-    if (tab === 'ai' && (!opp.match_score || opp.match_score < 0.8)) return false;
+  const baseOpportunities = tab === 'ai' ? recommendedOpportunities : opportunities;
+  const filteredOpportunities = baseOpportunities.filter((opp) => {
 
     if (search) {
       const q = search.toLowerCase();
@@ -95,7 +97,7 @@ export const DiscoverOpportunities: React.FC<DiscoverOpportunitiesProps> = ({
             }`}
           >
             <Sparkles size={14} className="text-[#ea580c]" />
-            <span>AI Recommended</span>
+            <span>AI Recommended ({recommendedOpportunities.length})</span>
           </button>
         </div>
       </div>
@@ -161,8 +163,8 @@ export const DiscoverOpportunities: React.FC<DiscoverOpportunitiesProps> = ({
       {/* Grid of Opportunity Cards */}
       {filteredOpportunities.length === 0 ? (
         <EmptyState
-          title="No opportunities found"
-          description="No educational programs match your selected search terms or filters."
+          title={tab === 'ai' ? 'No AI matches yet' : 'No opportunities found'}
+          description={tab === 'ai' ? 'Complete your learner preferences and save your profile to generate personalized matches.' : 'No educational programs match your selected search terms or filters.'}
           actionLabel="Reset Filters"
           onAction={() => {
             setSearch('');

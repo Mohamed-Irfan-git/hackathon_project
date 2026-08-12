@@ -1,5 +1,5 @@
 import { isSupabaseConfigured, supabase, supabaseAnonKey, supabaseUrl } from '../lib/supabase';
-import type { Booking, ImpactMetrics, KnowledgeBaseEntry, Opportunity, ProviderProfileData, RAGResponse, Sponsorship } from '../types';
+import type { Booking, ImpactMetrics, KnowledgeBaseEntry, Opportunity, ProviderProfileData, RAGResponse, Sponsorship, SponsorshipRequest } from '../types';
 
 type DbOpportunity = Omit<Opportunity, 'provider_name' | 'provider_verified'> & { provider_name?: string; provider_verified?: boolean };
 const toOpportunity = (row: DbOpportunity): Opportunity => ({
@@ -91,9 +91,15 @@ export const api = {
     if (error) throw error;
     return (data ?? []).map((row) => ({ ...row, amount: Number(row.amount), sponsor_name: 'Sponsor' } as Sponsorship));
   },
-  async createSponsorship(input: { learner_id?: string; opportunity_id?: string; amount: number }): Promise<Sponsorship> {
+  async createSponsorship(input: { learner_id?: string; opportunity_id?: string; sponsorship_request_id?: string; amount: number }): Promise<Sponsorship> {
     const result = await invoke<{ sponsorship_id: string; status: Sponsorship['status'] }>('create-sponsorship', input);
     return { id: result.sponsorship_id, sponsor_id: '', sponsor_name: 'You', amount: input.amount, status: result.status, created_at: new Date().toISOString() } as Sponsorship;
+  },
+  async createSponsorshipRequest(input: { title: string; reason: string; amount_needed: number; opportunity_id?: string }): Promise<void> {
+    await invoke('create-sponsorship-request', input);
+  },
+  async getSponsorshipRequests(): Promise<SponsorshipRequest[]> {
+    return invoke<SponsorshipRequest[]>('list-sponsorship-requests');
   },
 
   async getProviders(): Promise<ProviderProfileData[]> {
