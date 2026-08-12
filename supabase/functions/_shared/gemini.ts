@@ -24,7 +24,9 @@ export async function generateEmbedding(text: string): Promise<number[]> {
   const cached = embeddingCache.get(hash);
   if (cached) return cached;
   const model = embeddingModel(); if (!model) throw new Error('GEMINI_EMBEDDING_MODEL is not configured');
-  const json = await gemini(`${model}:embedContent`, { content: { parts: [{ text }] } });
+  // Keep Gemini's configurable output aligned with the deployed pgvector(768) schema.
+  // This is supported by gemini-embedding-001, which otherwise returns 3072 values by default.
+  const json = await gemini(`${model}:embedContent`, { content: { parts: [{ text }] }, outputDimensionality: 768 });
   const values = json?.embedding?.values;
   if (!Array.isArray(values) || !values.every((v: unknown) => typeof v === 'number')) throw new Error('Gemini returned no embedding values');
   if (values.length !== 768) throw new Error(`Embedding dimension ${values.length} does not match database vector(768)`);

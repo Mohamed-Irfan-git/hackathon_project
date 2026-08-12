@@ -14,6 +14,10 @@ Deno.serve(async (req) => {
     const row: Record<string, unknown> = { ...input, embedding_input_hash: hash, verified_by: input.status === 'verified' ? actor.id : null, updated_at: new Date().toISOString() };
     delete row.id; if (!cached) row.embedding = vector(await generateEmbedding(text));
     const { data, error } = input.id ? await db.from('knowledge_base').update(row).eq('id', input.id).select('id').single() : await db.from('knowledge_base').insert(row).select('id').single();
-    if (error) throw error; return ok({ id: data.id, embedded: true, cached });
+    if (error) throw error;
+    // Curated RAG context changed; discard every grounded answer so stale answers cannot be served.
+    const { error: cacheError } = await db.from('rag_cache').delete().neq('question_hash', '');
+    if (cacheError) throw cacheError;
+    return ok({ id: data.id, embedded: true, cached });
   } catch (error) { return fail('embedding_failed', error instanceof Error ? error.message : 'Embedding failed', 502); }
 });
