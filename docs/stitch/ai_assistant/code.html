@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+
+<html class="h-full" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>TakeUForward - AI Assistant</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;700&amp;family=Geist:wght@400;500&amp;family=Inter:wght@400&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "secondary-container": "#fea619",
+                        "on-primary-fixed-variant": "#004e61",
+                        "tertiary": "#894e00",
+                        "outline-variant": "#bdc8ce",
+                        "on-tertiary": "#ffffff",
+                        "tertiary-fixed": "#ffdcbf",
+                        "on-secondary-container": "#684000",
+                        "on-primary": "#ffffff",
+                        "surface-container-highest": "#d9e3f6",
+                        "error-container": "#ffdad6",
+                        "surface-container-lowest": "#ffffff",
+                        "tertiary-fixed-dim": "#ffb873",
+                        "error": "#ba1a1a",
+                        "primary-fixed": "#b7eaff",
+                        "on-primary-fixed": "#001f28",
+                        "primary-container": "#007f9d",
+                        "on-surface": "#121c2a",
+                        "surface-container": "#e6eeff",
+                        "secondary-fixed": "#ffddb8",
+                        "outline": "#6e797e",
+                        "secondary": "#855300",
+                        "on-tertiary-fixed-variant": "#6a3b00",
+                        "surface-variant": "#d9e3f6",
+                        "on-error": "#ffffff",
+                        "surface-container-low": "#eff4ff",
+                        "on-tertiary-container": "#fffbff",
+                        "surface-bright": "#f8f9ff",
+                        "primary-fixed-dim": "#6cd3f7",
+                        "background": "#f8f9ff",
+                        "inverse-surface": "#27313f",
+                        "on-secondary-fixed": "#2a1700",
+                        "on-secondary": "#ffffff",
+                        "surface-container-high": "#dee9fc",
+                        "on-background": "#121c2a",
+                        "secondary-fixed-dim": "#ffb95f",
+                        "on-error-container": "#93000a",
+                        "on-secondary-fixed-variant": "#653e00",
+                        "on-tertiary-fixed": "#2d1600",
+                        "primary": "#00647c",
+                        "inverse-on-surface": "#eaf1ff",
+                        "on-surface-variant": "#3e484d",
+                        "surface-dim": "#d0dbed",
+                        "surface": "#f8f9ff",
+                        "tertiary-container": "#a86516",
+                        "inverse-primary": "#6cd3f7",
+                        "surface-tint": "#006780",
+                        "on-primary-container": "#fafdff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "sidebar-width": "260px",
+                        "gutter": "16px",
+                        "container-padding": "24px",
+                        "unit": "4px",
+                        "max-width-content": "1200px"
+                    },
+                    "fontFamily": {
+                        "headline-md": ["Hanken Grotesk"],
+                        "label-sm": ["Geist"],
+                        "display": ["Hanken Grotesk"],
+                        "body-lg": ["Inter"],
+                        "headline-lg": ["Hanken Grotesk"],
+                        "label-md": ["Geist"],
+                        "mono": ["Geist"],
+                        "body-sm": ["Inter"],
+                        "body-md": ["Inter"]
+                    },
+                    "fontSize": {
+                        "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+                        "label-sm": ["12px", { "lineHeight": "14px", "letterSpacing": "0.03em", "fontWeight": "500" }],
+                        "display": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+                        "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "label-md": ["14px", { "lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "500" }],
+                        "mono": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "body-sm": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .ai-match-badge {
+            background-color: rgba(245, 158, 11, 0.1);
+            border: 1px solid #f59e0b;
+            color: #f59e0b;
+        }
+        .ai-match-badge span { color: #f59e0b; }
+        .ai-glow { box-shadow: 0 0 8px rgba(245, 158, 11, 0.1); }
+        .btn-primary { background-color: #0891b2; color: white; }
+        .btn-primary:hover { background-color: #0e7490; }
+        .input-border { border: 1px solid #e5e7eb; }
+        .input-focus:focus { outline: none; border-color: #0891b2; ring: 2px #0891b2; ring-offset: 0; }
+    </style>
+</head>
+<body class="bg-background text-on-surface font-body-md text-body-md h-full flex antialiased">
+<!-- SideNavBar -->
+<nav class="hidden md:flex bg-surface-container-low border-r border-outline-variant fixed left-0 top-0 h-full w-[260px] flex-col py-6">
+<div class="px-6 mb-8 flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-on-primary font-bold">T</div>
+<div>
+<h1 class="font-headline-md text-headline-md font-bold text-primary">TakeUForward</h1>
+<p class="font-label-sm text-label-sm text-on-surface-variant">EdTech Platform</p>
+</div>
+</div>
+<div class="flex-1 flex flex-col gap-1 w-full px-2">
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high transition-colors duration-200 rounded-lg group" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="font-label-md text-label-md">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high transition-colors duration-200 rounded-lg group" href="#">
+<span class="material-symbols-outlined" data-icon="explore">explore</span>
+<span class="font-label-md text-label-md">Discover</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high transition-colors duration-200 rounded-lg group" href="#">
+<span class="material-symbols-outlined" data-icon="event_available">event_available</span>
+<span class="font-label-md text-label-md">My Bookings</span>
+</a>
+<!-- Active Tab -->
+<a class="flex items-center gap-3 px-4 py-3 text-primary font-bold border-l-4 border-primary bg-surface-container-high rounded-r-lg group" href="#">
+<span class="material-symbols-outlined" data-icon="assistant" data-weight="fill" style="font-variation-settings: 'FILL' 1;">assistant</span>
+<span class="font-label-md text-label-md">Assistant</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high transition-colors duration-200 rounded-lg group" href="#">
+<span class="material-symbols-outlined" data-icon="monetization_on">monetization_on</span>
+<span class="font-label-md text-label-md">Sponsorship</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high transition-colors duration-200 rounded-lg group mt-auto" href="#">
+<span class="material-symbols-outlined" data-icon="account_circle">account_circle</span>
+<span class="font-label-md text-label-md">Profile</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high transition-colors duration-200 rounded-lg group" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="font-label-md text-label-md">Settings</span>
+</a>
+</div>
+</nav>
+<!-- Main Content Wrapper -->
+<div class="flex-1 flex flex-col md:ml-[260px] h-full overflow-hidden">
+<!-- TopNavBar -->
+<header class="bg-surface border-b border-outline-variant flex justify-between items-center px-6 h-16 w-full shrink-0 z-10">
+<div class="flex items-center gap-2">
+<span class="font-label-sm text-label-sm text-on-surface-variant">TakeUForward</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">/</span>
+<span class="font-label-sm text-label-sm text-primary font-bold">Assistant</span>
+</div>
+<div class="flex items-center gap-4">
+<button class="text-on-surface-variant hover:bg-surface-container rounded-full p-2 transition-all">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<button class="font-label-md text-label-md text-on-surface-variant border border-outline-variant px-4 py-1.5 rounded-full hover:bg-surface-container transition-all">
+                    Switch Role
+                </button>
+<div class="w-8 h-8 rounded-full overflow-hidden border border-outline-variant">
+<img alt="User Profile Avatar" class="w-full h-full object-cover" data-alt="A professional headshot of a young professional in a bright, modern studio setting. The lighting is soft and high-key, casting minimal shadows. The background is a clean, neutral white, typical of a professional SaaS platform avatar. The subject has a friendly expression." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDOrxOu6aueNCFtXPaJGreGJHVqStkWPm6yvrbR2KlNL8AdSRgs-3ogKbWOr1shZ4RiknB_-rcj8yJNbLJW9UKVlQTxm5Xls1mh6Yv4rARzK0N_fH7vhBm6CZbehvSDZEybnvCO5zUQNq5Otl6qD9r_eQc2SCglXijSqKB583CYt1GBOwVo8X9hJpM41aNC1hyDkuaopJHar4lpQDQAfsaxOHaqtfr7MS2TelSwnWkJJfIgJg5NRPNb"/>
+</div>
+</div>
+</header>
+<!-- Page Canvas -->
+<main class="flex-1 overflow-y-auto p-container-padding grid grid-cols-1 lg:grid-cols-3 gap-6 max-w-max-width-content mx-auto w-full">
+<!-- Chat Area (Spans 2 columns on lg) -->
+<div class="lg:col-span-2 flex flex-col bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden h-[calc(100vh-8rem)]">
+<!-- Chat Header -->
+<div class="bg-surface-container-highest p-4 border-b border-outline-variant flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-secondary-container bg-opacity-20 flex items-center justify-center text-[#f59e0b]">
+<span class="material-symbols-outlined" data-icon="auto_awesome" data-weight="fill" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+</div>
+<div>
+<h2 class="font-headline-md text-headline-md font-bold text-on-surface">AI Career Assistant</h2>
+<p class="font-label-md text-label-md text-on-surface-variant">Powered by intelligent matchmaking</p>
+</div>
+</div>
+<!-- Chat History -->
+<div class="flex-1 p-6 overflow-y-auto flex flex-col gap-6">
+<!-- Assistant Message -->
+<div class="flex gap-4 max-w-[85%]">
+<div class="w-8 h-8 rounded-full bg-secondary-container bg-opacity-20 flex-shrink-0 flex items-center justify-center text-[#f59e0b] mt-1">
+<span class="material-symbols-outlined text-sm" data-icon="auto_awesome">auto_awesome</span>
+</div>
+<div class="bg-surface-container-low p-4 rounded-2xl rounded-tl-sm border border-outline-variant">
+<p class="font-body-md text-body-md text-on-surface">Hello! I'm your AI career assistant. I can help you find mentors, discover scholarships, or recommend learning paths tailored to your goals. How can I help you today?</p>
+</div>
+</div>
+<!-- Suggested Prompts -->
+<div class="flex flex-wrap gap-2 mt-2 ml-12">
+<button class="px-4 py-2 rounded-full border border-outline-variant font-label-md text-label-md text-on-surface-variant hover:border-[#0891b2] hover:text-[#0891b2] transition-colors bg-surface-container-lowest shadow-sm">
+                            Find me a Python mentor
+                        </button>
+<button class="px-4 py-2 rounded-full border border-outline-variant font-label-md text-label-md text-on-surface-variant hover:border-[#0891b2] hover:text-[#0891b2] transition-colors bg-surface-container-lowest shadow-sm">
+                            Show scholarships for CS
+                        </button>
+<button class="px-4 py-2 rounded-full border border-outline-variant font-label-md text-label-md text-on-surface-variant hover:border-[#0891b2] hover:text-[#0891b2] transition-colors bg-surface-container-lowest shadow-sm">
+                            Review my recent module progress
+                        </button>
+</div>
+<!-- User Message -->
+<div class="flex gap-4 max-w-[85%] self-end">
+<div class="bg-primary-container text-on-primary-container p-4 rounded-2xl rounded-tr-sm">
+<p class="font-body-md text-body-md">Find me a Python mentor</p>
+</div>
+<div class="w-8 h-8 rounded-full bg-outline-variant flex-shrink-0 overflow-hidden border border-outline mt-1">
+<img alt="User" class="w-full h-full object-cover" data-alt="A small circular avatar of a user. The user is a young professional looking slightly off-camera. The lighting is soft studio lighting against a pale gray background. The image is clean and minimalist." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCHWAs_55rMfIGOPqCnp0ATgp5_GKQq_89rDCkhljzEXcsDd31iQRWvBfIK11Vmi27ATk1Wo7EUS08zzl5DS7djy3TvuTB-9TBrl6okVrjwQcf8gyaihBnHZdWVrQePz48jOXS6bIDpyf3LNAZclDJV44WJDFTnqsFvC-4c5m7CttJWKWhO1Ej8n_wPGbFgxE5ULUnlZYm08w8zz0SzDJkxlZVkMY-DE1VKjwb6Q1ZJu-0oS03Ho-jV"/>
+</div>
+</div>
+<!-- Assistant Response -->
+<div class="flex gap-4 max-w-[85%]">
+<div class="w-8 h-8 rounded-full bg-secondary-container bg-opacity-20 flex-shrink-0 flex items-center justify-center text-[#f59e0b] mt-1">
+<span class="material-symbols-outlined text-sm" data-icon="auto_awesome">auto_awesome</span>
+</div>
+<div class="bg-surface-container-low p-4 rounded-2xl rounded-tl-sm border border-outline-variant flex flex-col gap-3 w-full">
+<p class="font-body-md text-body-md text-on-surface">I found a few highly rated Python mentors based on your current skill level (Intermediate) and timezone. I've highlighted the best match in the insights panel.</p>
+<!-- Inline Match Card -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-lg p-4 hover:border-[#0891b2] transition-colors cursor-pointer flex items-center gap-4 group">
+<div class="w-12 h-12 rounded-full overflow-hidden shrink-0">
+<img alt="Mentor Profile" class="w-full h-full object-cover" data-alt="A professional headshot of a senior software engineer in a bright, modern studio setting. They are wearing casual professional attire. The lighting is soft and high-key. The background is a clean, neutral white." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAeEGhSjexKW-MDJODqri5JcfCnq4VuLay4JOGN_cVX9w0SCVxdVcV6aafPoOtlEc8bvlj8kx_RXIFuXVFrSHi4dpzweR8qOi2U1taQkzjFTUBah9I-Kdb2WnyOnAm9EiB0oImEthsfb3C5j0bAxw32DxKa1NjzTIuoRtDGakioo7hVJwQSvnUhm1lIAS3wHa6gA2sHqLS4GGVEVaGngke1Qbig9rZvvokIJxV3OAVWoAOuV71lJS3t"/>
+</div>
+<div class="flex-1">
+<h4 class="font-headline-sm text-headline-sm font-bold text-on-surface group-hover:text-[#0891b2] transition-colors">Dr. Sarah Jenkins</h4>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Senior Data Scientist at TechCorp</p>
+</div>
+<div class="ai-match-badge px-2 py-1 rounded-full flex items-center gap-1">
+<span class="material-symbols-outlined text-[12px]" data-icon="auto_awesome">auto_awesome</span>
+<span class="font-label-sm text-label-sm uppercase font-bold text-[10px]">98% Match</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Input Area -->
+<div class="p-4 border-t border-outline-variant bg-surface-container-lowest">
+<div class="relative flex items-center">
+<input class="w-full bg-surface-container-low input-border rounded-lg pl-4 pr-12 py-3 font-body-md text-body-md text-on-surface focus:outline-none focus:ring-2 focus:ring-[#0891b2] focus:border-transparent transition-all" placeholder="Type your request here..." type="text"/>
+<button class="absolute right-2 p-2 text-primary hover:bg-surface-container rounded-full transition-colors flex items-center justify-center">
+<span class="material-symbols-outlined" data-icon="send">send</span>
+</button>
+</div>
+</div>
+</div>
+<!-- AI Insights Panel -->
+<div class="flex flex-col gap-4">
+<h3 class="font-headline-md text-headline-md font-bold text-on-surface flex items-center gap-2">
+<span class="material-symbols-outlined text-[#f59e0b]" data-icon="lightbulb">lightbulb</span>
+                    AI Insights
+                </h3>
+<!-- Recommendation Card 1 -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden hover:border-[#0891b2] hover:shadow-[0_4px_12px_rgba(0,0,0,0.05)] transition-all ai-glow">
+<div class="p-4 border-b border-outline-variant bg-surface-container-highest flex justify-between items-start">
+<div class="ai-match-badge px-2 py-1 rounded-full flex items-center gap-1">
+<span class="material-symbols-outlined text-[12px]" data-icon="auto_awesome">auto_awesome</span>
+<span class="font-label-sm text-label-sm uppercase font-bold text-[10px]">Top Mentor Match</span>
+</div>
+<button class="text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-sm" data-icon="bookmark_border">bookmark_border</span>
+</button>
+</div>
+<div class="p-5 flex flex-col gap-3">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full overflow-hidden shrink-0">
+<img alt="Mentor Profile" class="w-full h-full object-cover" data-alt="A professional headshot of a senior female software engineer in a bright, modern studio setting. They are wearing a dark blazer over a simple top. The lighting is soft and high-key. The background is a clean, neutral white." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAcIJma5tnNyRJ3OJ1687596k3Fwlp3jdOJ0z4YeRNbQ_xiSVf0wuo8aIFXt9CKwl0f4t-8nIDiwCCBu3idmNvABlEL-7t_7LBH8WRWdU0XxxvR-KKKR9t0ob8DS97PrUICfCuTQH1_hHEGOUyxL4zjaMzVrrH4Kbmqd5jzjpkfJOJbUEcm44i4jSMWRYXZUn4W30YVcjEmU-xhTSO9bLODoGYt87-8hfvPKZx-G6XbOKF-99smaNPl"/>
+</div>
+<div>
+<h4 class="font-headline-md text-headline-md font-bold text-on-surface text-base">Sarah Jenkins</h4>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Expert in Python &amp; ML</p>
+</div>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-2">Sarah's background aligns perfectly with your recent module completions in Advanced Data Structures.</p>
+<button class="w-full mt-2 btn-primary font-label-md text-label-md py-2 rounded-lg transition-colors">Book Session</button>
+</div>
+</div>
+<!-- Recommendation Card 2 -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden hover:border-[#0891b2] hover:shadow-[0_4px_12px_rgba(0,0,0,0.05)] transition-all">
+<div class="p-4 border-b border-outline-variant bg-surface-container-highest flex justify-between items-start">
+<div class="bg-surface-container-low border border-outline-variant px-2 py-1 rounded-full flex items-center gap-1">
+<span class="material-symbols-outlined text-[12px] text-on-surface-variant" data-icon="school">school</span>
+<span class="font-label-sm text-label-sm uppercase font-bold text-[10px] text-on-surface-variant">Scholarship Alert</span>
+</div>
+</div>
+<div class="p-5 flex flex-col gap-3">
+<h4 class="font-headline-md text-headline-md font-bold text-on-surface text-base">Women in Tech Grant</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Deadline approaching in 14 days. You meet 100% of the technical requirements based on your profile.</p>
+<button class="w-full mt-2 font-label-md text-label-md py-2 rounded-lg border border-outline-variant text-on-surface hover:bg-surface-container transition-colors bg-transparent">View Details</button>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>
