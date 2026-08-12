@@ -1,7 +1,7 @@
 import React from 'react';
 import type { UserRole } from '../../types';
 import { Sparkles, LogIn, Menu, Shield, Globe } from 'lucide-react';
-import Logo from '../../logo/Logo.jpg';
+import Logo from '../../logo/Logo.png';
 
 interface HeaderProps {
   currentRole: UserRole;
