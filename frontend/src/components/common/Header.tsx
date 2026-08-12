@@ -1,6 +1,7 @@
 import React from 'react';
 import type { UserRole } from '../../types';
 import { Sparkles, LogIn, Menu, Shield, Globe } from 'lucide-react';
+import Logo from '../../logo/Logo.jpg';
 
 interface HeaderProps {
   currentRole: UserRole;
@@ -25,7 +26,8 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   return (
     <header className="sticky top-0 z-40 bg-white border-b border-[#d9e3f6] shadow-xs">
-      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4 overflow-hidden">
+        
         {/* Left branding & mobile menu */}
         <div className="flex items-center gap-3">
           {currentRole !== 'public' && (
@@ -43,17 +45,12 @@ export const Header: React.FC<HeaderProps> = ({
             onClick={onHome}
             className="flex items-center gap-2 cursor-pointer group"
           >
-            <div className="w-9 h-9 rounded-xl bg-[#00647c] flex items-center justify-center text-white font-bold text-lg font-display shadow-xs group-hover:bg-[#004e61] transition-colors">
-              S
-            </div>
-            <div>
-              <span className="font-extrabold text-lg text-[#121c2a] tracking-tight font-display block leading-none">
-                TakeUForward
-              </span>
-              <span className="text-[10px] font-medium text-[#6e797e] font-geist tracking-wider uppercase block mt-0.5">
-                Striver Platform
-              </span>
-            </div>
+            {/* Lowered scale to 1.5x on mobile and 1.8x on desktop to reduce size */}
+            <img 
+              src={Logo} 
+              alt="TakeUForward Logo" 
+              className="h-16 w-auto object-contain transform scale-[1.5] sm:scale-[1.8] origin-left mix-blend-multiply" 
+            />
           </div>
         </div>
 
