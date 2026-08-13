@@ -84,7 +84,8 @@ export function App() {
       if (userRole === 'provider') {
         const { data } = await supabase.from('provider_profiles').select('*').eq('user_id', userId).single();
         if (data) setProviders([{ id: data.user_id, user_id: data.user_id, organization_name: userName, bio: data.bio, verification_status: data.status }]);
-        setBookings(await api.getBookings());
+        const [providerOpportunities, providerBookings] = await Promise.all([api.getProviderOpportunities(userId), api.getBookings()]);
+        setOpportunities(providerOpportunities); setBookings(providerBookings);
       }
     } catch (error) { showToast(error instanceof Error ? error.message : 'Unable to load live data.'); }
     finally { setIsLoading(false); }
@@ -92,6 +93,16 @@ export function App() {
 
   useEffect(() => {
     void loadData();
+  }, []);
+
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    if (url.searchParams.get('confirmed') !== '1') return;
+    url.searchParams.delete('confirmed');
+    window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`);
+    setAuthMode('login');
+    setIsAuthOpen(true);
+    showToast('Email confirmed. Sign in to continue.');
   }, []);
 
   useEffect(() => {
@@ -149,11 +160,11 @@ export function App() {
   }, []);
 
   const handleRespondBooking = async (bookingId: string, decision: 'accepted' | 'rejected') => {
-    try { await api.respondBooking(bookingId, decision); await loadData(); showToast(`Booking request ${decision}.`); } catch (error) { showToast(error instanceof Error ? error.message : 'Booking update failed.'); }
+    try { await api.respondBooking(bookingId, decision); if (currentUserId) await loadData(currentUserId, 'provider'); showToast(`Booking request ${decision}.`); } catch (error) { showToast(error instanceof Error ? error.message : 'Booking update failed.'); }
   };
 
   const handleCreateOpportunity = async (data: Partial<Opportunity>) => {
-    try { const newOpp = await api.upsertOpportunity(data); setOpportunities((prev) => [newOpp, ...prev]); showToast(`Opportunity "${newOpp.title}" saved and embedded.`); } catch (error) { showToast(error instanceof Error ? error.message : 'Opportunity save failed.'); }
+    try { const newOpp = await api.upsertOpportunity(data); setOpportunities((prev) => [newOpp, ...prev]); showToast(newOpp.status === 'draft' ? `Saved "${newOpp.title}" as a draft. It can be published after verification.` : `Opportunity "${newOpp.title}" published and embedded.`); } catch (error) { showToast(error instanceof Error ? error.message : 'Opportunity save failed.'); }
   };
 
   const handleCreatePledge = async (

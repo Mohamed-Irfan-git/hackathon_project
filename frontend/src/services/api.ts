@@ -78,14 +78,26 @@ export const api = {
   },
 
   async getBookings(learnerId?: string): Promise<Booking[]> {
-    let query = supabase.from('bookings').select('*, opportunities(title,type,price,provider_id)').order('requested_at', { ascending: false });
+    let query = supabase.from('bookings').select('*, opportunities(title,type,price,provider_id), learner:users!bookings_learner_id_fkey(full_name)').order('requested_at', { ascending: false });
     if (learnerId) query = query.eq('learner_id', learnerId);
     const { data, error } = await query;
     if (error) throw error;
     return (data ?? []).map((row: Record<string, unknown>) => {
       const opportunity = row.opportunities as Record<string, unknown> | null;
-      return { ...row, opportunity_title: opportunity?.title ?? 'Opportunity', opportunity_type: opportunity?.type ?? 'COURSE', provider_id: opportunity?.provider_id ?? '', provider_name: 'Provider', price: Number(opportunity?.price ?? 0), learner_name: 'Learner', date: row.requested_at, created_at: row.requested_at } as Booking;
+      const learner = row.learner as { full_name?: string } | null;
+      return { ...row, opportunity_title: opportunity?.title ?? 'Opportunity', opportunity_type: opportunity?.type ?? 'COURSE', provider_id: opportunity?.provider_id ?? '', provider_name: 'Provider', price: Number(opportunity?.price ?? 0), learner_name: learner?.full_name ?? 'Learner', date: row.requested_at, created_at: row.requested_at } as Booking;
     });
+  },
+
+  async getProviderOpportunities(providerId: string): Promise<Opportunity[]> {
+    const { data, error } = await supabase.from('opportunities').select('*').eq('provider_id', providerId).order('created_at', { ascending: false });
+    if (error) throw error;
+    return (data ?? []).map((row) => toOpportunity(row as DbOpportunity));
+  },
+
+  async updateProviderProfile(userId: string, input: { bio?: string; university?: string; faculty?: string; skills?: string[]; subjects?: string[]; expertise_areas?: string[]; location?: string; availability?: string }): Promise<void> {
+    const { error } = await supabase.from('provider_profiles').upsert({ user_id: userId, ...input, updated_at: new Date().toISOString() });
+    if (error) throw error;
   },
 
   async createBooking(opportunityId: string): Promise<Booking> {

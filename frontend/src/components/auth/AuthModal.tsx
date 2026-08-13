@@ -54,7 +54,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         const { data, error: authError } = await supabase.auth.signUp({
           email,
           password,
-          options: { data: { app_role: selectedRole, full_name: fullName } },
+          options: {
+            data: { app_role: selectedRole, full_name: fullName },
+            emailRedirectTo: `${window.location.origin}?confirmed=1`,
+          },
         });
         if (authError || !data.user) throw authError || new Error('Sign up failed');
         if (!data.session) throw new Error('Check your email to confirm the account, then sign in. Your profile will be created after confirmation.');
