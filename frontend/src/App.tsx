@@ -108,7 +108,6 @@ export function App() {
   }, []);
 
   useEffect(() => {
-      image
     // Authentication restoration updates state only after this external check completes.
     if (!isSupabaseConfigured) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -127,7 +126,6 @@ export function App() {
 
   useEffect(() => {
     if (!isSupabaseConfigured) { setIsAuthLoading(false); return; }
-     main
     supabase.auth.getUser().then(async (result) => {
       const data = result.data;
       if (!data.user) return;
@@ -149,7 +147,6 @@ export function App() {
     }).finally(() => setIsAuthLoading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
 
-main
   }, []);
 
   // Handlers for user interactions
