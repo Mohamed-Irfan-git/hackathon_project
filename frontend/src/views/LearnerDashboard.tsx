@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import type { Opportunity, Booking, LearnerProfileData } from '../types';
+import type { NavTab } from '../components/common/Sidebar';
 import { OpportunityCard } from '../components/common/OpportunityCard';
 import { Badge } from '../components/common/Badge';
 import { AITag } from '../components/common/AITag';
@@ -11,7 +12,7 @@ interface LearnerDashboardProps {
   upcomingBookings: Booking[];
   onSelectOpportunity: (opp: Opportunity) => void;
   onBookOpportunity: (opp: Opportunity) => void;
-  onNavigateTab: (tab: any) => void;
+  onNavigateTab: (tab: NavTab) => void;
   onAskRAG: (query: string) => void;
 }
 

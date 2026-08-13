@@ -1,6 +1,9 @@
 import React from 'react';
 import type { UserRole } from '../../types';
 import { Sparkles, LogIn, Menu, Shield, Globe } from 'lucide-react';
+// `?url` makes Vite emit a stable public URL for this local image in both
+// development and production builds.
+import logoUrl from '../../logo/Logo.png?url';
 
 interface HeaderProps {
   currentRole: UserRole;
@@ -25,7 +28,9 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   return (
     <header className="sticky top-0 z-40 bg-white border-b border-[#d9e3f6] shadow-xs">
-      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
+      {/* Increased header height (h-20) to accommodate the larger logo safely */}
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 h-20 flex items-center justify-between gap-4 overflow-hidden">
+        
         {/* Left branding & mobile menu */}
         <div className="flex items-center gap-3">
           {currentRole !== 'public' && (
@@ -43,17 +48,12 @@ export const Header: React.FC<HeaderProps> = ({
             onClick={onHome}
             className="flex items-center gap-2 cursor-pointer group"
           >
-            <div className="w-9 h-9 rounded-xl bg-[#00647c] flex items-center justify-center text-white font-bold text-lg font-display shadow-xs group-hover:bg-[#004e61] transition-colors">
-              S
-            </div>
-            <div>
-              <span className="font-extrabold text-lg text-[#121c2a] tracking-tight font-display block leading-none">
-                TakeUForward
-              </span>
-              <span className="text-[10px] font-medium text-[#6e797e] font-geist tracking-wider uppercase block mt-0.5">
-                Striver Platform
-              </span>
-            </div>
+            {/* Enlarged the logo by increasing height (h-20), max-width, and applying a scale transform */}
+            <img 
+              src={logoUrl} 
+              alt="TakeUForward Logo" 
+              className="h-20 w-auto max-w-[280px] object-contain mix-blend-multiply scale-125 origin-left" 
+            />
           </div>
         </div>
 

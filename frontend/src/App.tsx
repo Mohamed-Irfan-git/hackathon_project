@@ -91,11 +91,31 @@ export function App() {
     finally { setIsLoading(false); }
   };
 
+  // Sync role switch with default tabs
+  const handleRoleChange = (newRole: UserRole) => {
+    setRole(newRole);
+    if (newRole === 'learner') setActiveTab('learner-dashboard');
+    else if (newRole === 'provider') setActiveTab('provider-dashboard');
+    else if (newRole === 'sponsor') setActiveTab('sponsor-dashboard');
+    else if (newRole === 'admin') setActiveTab('admin-impact');
+  };
+
   useEffect(() => {
+    // Initial data loading intentionally updates the application data state.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
+      image
+    // Authentication restoration updates state only after this external check completes.
+    if (!isSupabaseConfigured) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setIsAuthLoading(false);
+      return;
+    }
+
     const url = new URL(window.location.href);
     if (url.searchParams.get('confirmed') !== '1') return;
     url.searchParams.delete('confirmed');
@@ -107,6 +127,7 @@ export function App() {
 
   useEffect(() => {
     if (!isSupabaseConfigured) { setIsAuthLoading(false); return; }
+     main
     supabase.auth.getUser().then(async (result) => {
       const data = result.data;
       if (!data.user) return;
@@ -126,16 +147,10 @@ export function App() {
       setIsLoggedIn(true); setCurrentUserId(data.user.id); setUserName(appUser?.full_name || data.user.email || 'User');
       if (appUser?.role) { handleRoleChange(appUser.role); void loadData(data.user.id, appUser.role); }
     }).finally(() => setIsAuthLoading(false));
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
 
-  // Sync role switch with default tabs
-  const handleRoleChange = (newRole: UserRole) => {
-    setRole(newRole);
-    if (newRole === 'learner') setActiveTab('learner-dashboard');
-    else if (newRole === 'provider') setActiveTab('provider-dashboard');
-    else if (newRole === 'sponsor') setActiveTab('sponsor-dashboard');
-    else if (newRole === 'admin') setActiveTab('admin-impact');
-  };
+main
+  }, []);
 
   // Handlers for user interactions
   const handleBookOpportunity = async (opp: Opportunity) => {
@@ -182,7 +197,7 @@ export function App() {
 
   const handleVerifyProvider = async (providerId: string, decision: 'verified' | 'rejected') => {
     const updated = await api.verifyProvider(providerId, decision);
-    setProviders((prev) => prev.map((p) => (p.id === providerId ? updated : p)));
+    setProviders((prev) => prev.map((p) => (p.id === providerId ? { ...p, ...updated } : p)));
     showToast(`Provider status updated to ${decision}!`);
   };
 
@@ -341,9 +356,13 @@ export function App() {
               )}
 
               {activeTab === 'profile' && (
-                <div className="bg-white rounded-2xl border border-[#d9e3f6] p-6 shadow-xs max-w-2xl space-y-4">
-                  <h2 className="text-xl font-bold text-[#121c2a] font-display">Learner Profile & Embedding Settings</h2>
-                  <form className="space-y-3 text-xs text-[#3e484d]" onSubmit={async (event) => {
+                <div className="bg-white rounded-[24px] border border-[#d9e3f6] p-8 md:p-10 shadow-sm max-w-[850px] w-full">
+                  <div className="mb-8">
+                    <h2 className="text-2xl font-bold text-[#121c2a] font-display">Learner Profile & Embedding Settings</h2>
+                    <p className="text-[15px] text-[#6e797e] mt-2">Keep your details updated to get the best AI-powered opportunity matches.</p>
+                  </div>
+                  
+                  <form className="space-y-6" onSubmit={async (event) => {
                     event.preventDefault();
                     if (!currentUserId) return;
                     try {
@@ -355,44 +374,95 @@ export function App() {
                       showToast('Profile saved and AI matching embedding refreshed.');
                     } catch (error) { showToast(error instanceof Error ? error.message : 'Profile update failed.'); }
                   }}>
-                    <div>
-                      <label className="font-semibold block text-[#121c2a]">Full Name</label>
-                      <input
-                        type="text"
-                        value={userName}
-                        onChange={(e) => setUserName(e.target.value)}
-                        className="w-full px-3 py-2 border rounded-lg mt-1"
-                      />
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <label className="text-sm font-semibold text-[#121c2a] block">Full Name</label>
+                        <input
+                          type="text"
+                          value={userName}
+                          onChange={(e) => setUserName(e.target.value)}
+                          className="w-full px-4 py-3 bg-[#f8f9ff]/50 border border-[#d9e3f6] rounded-2xl focus:ring-2 focus:ring-[#00647c]/20 focus:border-[#00647c] outline-none transition-all text-[#3e484d]"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-semibold text-[#121c2a] block">Education Level</label>
+                        <input
+                          type="text"
+                          value={profileForm.education_level}
+                          onChange={(event) => setProfileForm((current) => ({ ...current, education_level: event.target.value }))}
+                          className="w-full px-4 py-3 bg-[#f8f9ff]/50 border border-[#d9e3f6] rounded-2xl focus:ring-2 focus:ring-[#00647c]/20 focus:border-[#00647c] outline-none transition-all text-[#3e484d]"
+                        />
+                      </div>
                     </div>
-                    <div>
-                      <label className="font-semibold block text-[#121c2a]">Education Level</label>
-                      <input
-                        type="text"
-                        value={profileForm.education_level}
-                        onChange={(event) => setProfileForm((current) => ({ ...current, education_level: event.target.value }))}
-                        className="w-full px-3 py-2 border rounded-lg mt-1"
-                      />
-                    </div>
-                    <div>
-                      <label className="font-semibold block text-[#121c2a]">Field of Interest</label>
+
+                    <div className="space-y-2">
+                      <label className="text-sm font-semibold text-[#121c2a] block">Field of Interest</label>
                       <input
                         type="text"
                         value={profileForm.interests}
                         onChange={(event) => setProfileForm((current) => ({ ...current, interests: event.target.value }))}
-                        placeholder="e.g. ICT, web development"
-                        className="w-full px-3 py-2 border rounded-lg mt-1"
+                        placeholder="e.g. ICT, web development, design"
+                        className="w-full px-4 py-3 bg-[#f8f9ff]/50 border border-[#d9e3f6] rounded-2xl focus:ring-2 focus:ring-[#00647c]/20 focus:border-[#00647c] outline-none transition-all text-[#3e484d]"
                       />
                     </div>
-                    <input value={profileForm.subjects} onChange={(event) => setProfileForm((current) => ({ ...current, subjects: event.target.value }))} placeholder="Subjects, comma separated" className="w-full px-3 py-2 border rounded-lg" />
-                    <input value={profileForm.location} onChange={(event) => setProfileForm((current) => ({ ...current, location: event.target.value }))} placeholder="Location" className="w-full px-3 py-2 border rounded-lg" />
-                    <input value={profileForm.budget_max} type="number" min="0" onChange={(event) => setProfileForm((current) => ({ ...current, budget_max: event.target.value }))} placeholder="Maximum budget (LKR)" className="w-full px-3 py-2 border rounded-lg" />
-                    <textarea value={profileForm.learning_goals} onChange={(event) => setProfileForm((current) => ({ ...current, learning_goals: event.target.value }))} placeholder="Learning goals" className="w-full px-3 py-2 border rounded-lg" />
-                    <button
-                      type="submit"
-                      className="px-4 py-2 bg-[#00647c] text-white font-semibold rounded-lg font-geist"
-                    >
-                      Save profile & regenerate match embedding
-                    </button>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <label className="text-sm font-semibold text-[#121c2a] block">Subjects</label>
+                        <input 
+                          type="text"
+                          value={profileForm.subjects} 
+                          onChange={(event) => setProfileForm((current) => ({ ...current, subjects: event.target.value }))} 
+                          placeholder="Subjects, comma separated" 
+                          className="w-full px-4 py-3 bg-[#f8f9ff]/50 border border-[#d9e3f6] rounded-2xl focus:ring-2 focus:ring-[#00647c]/20 focus:border-[#00647c] outline-none transition-all text-[#3e484d]" 
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-semibold text-[#121c2a] block">Location</label>
+                        <input 
+                          type="text"
+                          value={profileForm.location} 
+                          onChange={(event) => setProfileForm((current) => ({ ...current, location: event.target.value }))} 
+                          placeholder="City or Region" 
+                          className="w-full px-4 py-3 bg-[#f8f9ff]/50 border border-[#d9e3f6] rounded-2xl focus:ring-2 focus:ring-[#00647c]/20 focus:border-[#00647c] outline-none transition-all text-[#3e484d]" 
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <label className="text-sm font-semibold text-[#121c2a] block">Maximum Budget (LKR)</label>
+                        <input 
+                          type="number" 
+                          min="0" 
+                          value={profileForm.budget_max} 
+                          onChange={(event) => setProfileForm((current) => ({ ...current, budget_max: event.target.value }))} 
+                          placeholder="e.g. 5000" 
+                          className="w-full px-4 py-3 bg-[#f8f9ff]/50 border border-[#d9e3f6] rounded-2xl focus:ring-2 focus:ring-[#00647c]/20 focus:border-[#00647c] outline-none transition-all text-[#3e484d]" 
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-sm font-semibold text-[#121c2a] block">Learning Goals</label>
+                      <textarea 
+                        value={profileForm.learning_goals} 
+                        onChange={(event) => setProfileForm((current) => ({ ...current, learning_goals: event.target.value }))} 
+                        placeholder="What do you want to achieve?" 
+                        rows={4}
+                        className="w-full px-4 py-3 bg-[#f8f9ff]/50 border border-[#d9e3f6] rounded-2xl focus:ring-2 focus:ring-[#00647c]/20 focus:border-[#00647c] outline-none transition-all text-[#3e484d] resize-y" 
+                      />
+                    </div>
+
+                    <div className="pt-4">
+                      <button
+                        type="submit"
+                        className="px-6 py-3 bg-[#00647c] hover:bg-[#007f9d] text-white font-semibold rounded-xl font-geist shadow-sm transition-colors duration-200"
+                      >
+                        Save profile & regenerate match embedding
+                      </button>
+                    </div>
                   </form>
                 </div>
               )}
@@ -449,6 +519,8 @@ export function App() {
                   onUpsertKnowledge={handleUpsertKnowledge}
                   onToggleKnowledgeStatus={handleToggleKnowledgeStatus}
                   onIndexKnowledge={handleIndexKnowledge}
+                  activeTab={activeTab === 'admin-providers' ? 'providers' : activeTab === 'admin-knowledge' ? 'rag' : activeTab === 'admin-opportunities' ? 'opportunities' : 'metrics'}
+                  onSelectTab={(tab) => setActiveTab(tab === 'providers' ? 'admin-providers' : tab === 'rag' ? 'admin-knowledge' : tab === 'opportunities' ? 'admin-opportunities' : 'admin-impact')}
                 />
               )}
             </>

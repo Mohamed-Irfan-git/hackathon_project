@@ -150,8 +150,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
         })}
       </nav>
 
-      {/* RAG Assistant Promo Box inside Sidebar */}
-      <div className="mt-auto pt-4 border-t border-[#d9e3f6]">
+      {/* The RAG assistant is currently a learner-facing workflow. */}
+      {currentRole === 'learner' && <div className="mt-auto pt-4 border-t border-[#d9e3f6]">
         <div className="p-3.5 rounded-xl bg-gradient-to-br from-[#fff7ed] to-[#ffedd5] border border-[#fea619]/40 text-left">
           <div className="flex items-center gap-1.5 text-xs font-bold text-[#855300] font-display mb-1">
             <Sparkles size={14} className="text-[#ea580c]" />
@@ -171,7 +171,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             Launch Assistant
           </button>
         </div>
-      </div>
+      </div>}
     </div>
   );
 
