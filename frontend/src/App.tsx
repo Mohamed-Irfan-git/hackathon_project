@@ -40,7 +40,7 @@ export function App() {
   const [recommendedOpps, setRecommendedOpps] = useState<Opportunity[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [sponsorships, setSponsorships] = useState<Sponsorship[]>([]);
-  const [sponsorshipRequests] = useState<SponsorshipRequest[]>([]);
+  const [sponsorshipRequests, setSponsorshipRequests] = useState<SponsorshipRequest[]>([]);
   const [knowledgeBase, setKnowledgeBase] = useState<KnowledgeBaseEntry[]>([]);
   const [providers, setProviders] = useState<ProviderProfileData[]>([]);
   const [impactMetrics, setImpactMetrics] = useState<ImpactMetrics>({ active_providers: 0, learners_supported: 0, total_bookings: 0, sponsored_learners: 0, sponsorship_amount: 0, opportunities_count: 0 });
@@ -52,6 +52,8 @@ export function App() {
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [bookingOpportunityId, setBookingOpportunityId] = useState<string | null>(null);
+  const [isAuthLoading, setIsAuthLoading] = useState(isSupabaseConfigured);
   const [profileForm, setProfileForm] = useState({ education_level: '', interests: '', subjects: '', location: '', learning_goals: '', budget_max: '', availability: '' });
 
   const showToast = (msg: string) => {
@@ -70,11 +72,11 @@ export function App() {
         if (data) {
           setLearnerProfile({ id: data.user_id, user_id: data.user_id, full_name: userName, education_level: data.education_level, field_of_interest: data.interests?.join(', '), budget_max: data.budget_max ? Number(data.budget_max) : undefined, location: data.location });
           setProfileForm({ education_level: data.education_level ?? '', interests: data.interests?.join(', ') ?? '', subjects: data.subjects?.join(', ') ?? '', location: data.location ?? '', learning_goals: data.learning_goals ?? '', budget_max: data.budget_max?.toString() ?? '', availability: data.availability ?? '' });
-        }
+        } else setActiveTab('profile');
         try { setRecommendedOpps(await api.getRecommendedOpportunities(userId)); } catch { setRecommendedOpps([]); }
         setBookings(await api.getBookings(userId));
       }
-      if (userRole === 'sponsor') setSponsorships(await api.getSponsorships());
+      if (userRole === 'sponsor') { const [history, requests] = await Promise.all([api.getSponsorships(), api.getSponsorshipRequests()]); setSponsorships(history); setSponsorshipRequests(requests); }
       if (userRole === 'admin') {
         const [metrics, kb, providerRows] = await Promise.all([api.getImpactSummary(), api.getKnowledgeBase(), api.getProviders()]);
         setImpactMetrics(metrics); setKnowledgeBase(kb); setProviders(providerRows);
@@ -93,14 +95,14 @@ export function App() {
   }, []);
 
   useEffect(() => {
-    if (!isSupabaseConfigured) return;
+    if (!isSupabaseConfigured) { setIsAuthLoading(false); return; }
     supabase.auth.getUser().then(async (result) => {
       const data = result.data;
       if (!data.user) return;
       const { data: appUser } = await supabase.from('users').select('role, full_name').eq('id', data.user.id).single();
       setIsLoggedIn(true); setCurrentUserId(data.user.id); setUserName(appUser?.full_name || data.user.email || 'User');
       if (appUser?.role) { handleRoleChange(appUser.role); void loadData(data.user.id, appUser.role); }
-    });
+    }).finally(() => setIsAuthLoading(false));
   }, []);
 
   // Sync role switch with default tabs
@@ -114,7 +116,15 @@ export function App() {
 
   // Handlers for user interactions
   const handleBookOpportunity = async (opp: Opportunity) => {
-    try { await api.createBooking(opp.id); await loadData(learnerProfile?.user_id, 'learner'); showToast(`Booking requested for "${opp.title}".`); } catch (error) { showToast(error instanceof Error ? error.message : 'Booking failed.'); }
+    if (!currentUserId) { setAuthMode('login'); setIsAuthOpen(true); return; }
+    setBookingOpportunityId(opp.id);
+    try {
+      await api.createBooking(opp.id);
+      await loadData(currentUserId, 'learner');
+      setActiveTab('bookings');
+      showToast(`Booking requested for "${opp.title}". You can track its status in My Bookings.`);
+    } catch (error) { showToast(error instanceof Error ? error.message : 'Booking failed.'); }
+    finally { setBookingOpportunityId(null); }
   };
 
   const handleAskRAG = (query: string) => {
@@ -142,9 +152,9 @@ export function App() {
     void note;
     try { const newSponsorship = await api.createSponsorship({
       learner_id: req.learner_id,
-      amount,
+      amount, sponsorship_request_id: req.id,
     });
-    setSponsorships((prev) => [newSponsorship, ...prev]); showToast(`Pledged LKR ${amount.toLocaleString()} for ${req.learner_name}.`); } catch (error) { showToast(error instanceof Error ? error.message : 'Sponsorship failed.'); }
+    setSponsorships((prev) => [newSponsorship, ...prev]); setSponsorshipRequests((prev) => prev.map((item) => item.id === req.id ? { ...item, amount_raised: item.amount_raised + amount } : item)); showToast(`Pledged LKR ${amount.toLocaleString()} for ${req.learner_name}.`); } catch (error) { showToast(error instanceof Error ? error.message : 'Sponsorship failed.'); }
   };
 
   const handleVerifyProvider = async (providerId: string, decision: 'verified' | 'rejected') => {
@@ -172,6 +182,12 @@ export function App() {
       if (currentUserId) await loadData(currentUserId, 'admin');
     } catch (error) { showToast(error instanceof Error ? error.message : 'Knowledge indexing failed.'); }
   };
+  const handleCreateSponsorshipRequest = async (title: string, reason: string, amount: number) => {
+    await api.createSponsorshipRequest({ title, reason, amount_needed: amount });
+    showToast('Sponsorship request submitted for review.');
+  };
+
+  if (isAuthLoading) return <div className="min-h-screen bg-[#f8f9ff] flex items-center justify-center p-6"><div className="rounded-2xl border border-[#d9e3f6] bg-white px-6 py-5 text-center shadow-xs"><div className="mx-auto mb-3 h-8 w-8 animate-spin rounded-full border-4 border-[#e6eeff] border-t-[#00647c]" /><p className="text-sm font-semibold text-[#121c2a]">Restoring your workspace…</p><p className="mt-1 text-xs text-[#6e797e]">Checking your secure sign-in session.</p></div></div>;
 
   const displayedLearner: LearnerProfileData = learnerProfile ?? { id: currentUserId ?? '', user_id: currentUserId ?? '', full_name: userName };
   const currentProvider = providers.find((provider) => provider.user_id === currentUserId) || { id: currentUserId ?? '', user_id: currentUserId ?? '', organization_name: userName, verification_status: 'pending' as const };
@@ -237,6 +253,10 @@ export function App() {
               onBookOpportunity={() => { setAuthMode('register'); setIsAuthOpen(true); showToast('Create a learner account to book an opportunity.'); }}
               onAskRAG={handleAskRAG}
               onSearch={handleSearchOpportunities}
+              recommendedOpportunities={recommendedOpps}
+              bookingOpportunityId={bookingOpportunityId}
+              bookings={bookings}
+              isAuthenticated={false}
             />
           )}
 
@@ -265,6 +285,10 @@ export function App() {
                   onBookOpportunity={handleBookOpportunity}
                   onAskRAG={handleAskRAG}
                   onSearch={handleSearchOpportunities}
+                  recommendedOpportunities={recommendedOpps}
+                  bookingOpportunityId={bookingOpportunityId}
+                  bookings={bookings}
+                  isAuthenticated={isLoggedIn && role === 'learner'}
                 />
               )}
 
@@ -289,13 +313,18 @@ export function App() {
                   sponsorships={sponsorships}
                   requests={sponsorshipRequests}
                   onCreatePledge={handleCreatePledge}
+                  onCreateRequest={handleCreateSponsorshipRequest}
                 />
               )}
 
               {activeTab === 'profile' && (
-                <div className="bg-white rounded-2xl border border-[#d9e3f6] p-6 shadow-xs max-w-2xl space-y-4">
-                  <h2 className="text-xl font-bold text-[#121c2a] font-display">Learner Profile & Embedding Settings</h2>
-                  <form className="space-y-3 text-xs text-[#3e484d]" onSubmit={async (event) => {
+                <div className="bg-white rounded-[24px] border border-[#d9e3f6] p-8 md:p-10 shadow-sm max-w-[850px] w-full">
+                  <div className="mb-8">
+                    <h2 className="text-2xl font-bold text-[#121c2a] font-display">Learner Profile & Embedding Settings</h2>
+                    <p className="text-[15px] text-[#6e797e] mt-2">Keep your details updated to get the best AI-powered opportunity matches.</p>
+                  </div>
+                  
+                  <form className="space-y-6" onSubmit={async (event) => {
                     event.preventDefault();
                     if (!currentUserId) return;
                     try {
@@ -307,44 +336,95 @@ export function App() {
                       showToast('Profile saved and AI matching embedding refreshed.');
                     } catch (error) { showToast(error instanceof Error ? error.message : 'Profile update failed.'); }
                   }}>
-                    <div>
-                      <label className="font-semibold block text-[#121c2a]">Full Name</label>
-                      <input
-                        type="text"
-                        value={userName}
-                        onChange={(e) => setUserName(e.target.value)}
-                        className="w-full px-3 py-2 border rounded-lg mt-1"
-                      />
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <label className="text-sm font-semibold text-[#121c2a] block">Full Name</label>
+                        <input
+                          type="text"
+                          value={userName}
+                          onChange={(e) => setUserName(e.target.value)}
+                          className="w-full px-4 py-3 bg-[#f8f9ff]/50 border border-[#d9e3f6] rounded-2xl focus:ring-2 focus:ring-[#00647c]/20 focus:border-[#00647c] outline-none transition-all text-[#3e484d]"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-semibold text-[#121c2a] block">Education Level</label>
+                        <input
+                          type="text"
+                          value={profileForm.education_level}
+                          onChange={(event) => setProfileForm((current) => ({ ...current, education_level: event.target.value }))}
+                          className="w-full px-4 py-3 bg-[#f8f9ff]/50 border border-[#d9e3f6] rounded-2xl focus:ring-2 focus:ring-[#00647c]/20 focus:border-[#00647c] outline-none transition-all text-[#3e484d]"
+                        />
+                      </div>
                     </div>
-                    <div>
-                      <label className="font-semibold block text-[#121c2a]">Education Level</label>
-                      <input
-                        type="text"
-                        value={profileForm.education_level}
-                        onChange={(event) => setProfileForm((current) => ({ ...current, education_level: event.target.value }))}
-                        className="w-full px-3 py-2 border rounded-lg mt-1"
-                      />
-                    </div>
-                    <div>
-                      <label className="font-semibold block text-[#121c2a]">Field of Interest</label>
+
+                    <div className="space-y-2">
+                      <label className="text-sm font-semibold text-[#121c2a] block">Field of Interest</label>
                       <input
                         type="text"
                         value={profileForm.interests}
                         onChange={(event) => setProfileForm((current) => ({ ...current, interests: event.target.value }))}
-                        placeholder="e.g. ICT, web development"
-                        className="w-full px-3 py-2 border rounded-lg mt-1"
+                        placeholder="e.g. ICT, web development, design"
+                        className="w-full px-4 py-3 bg-[#f8f9ff]/50 border border-[#d9e3f6] rounded-2xl focus:ring-2 focus:ring-[#00647c]/20 focus:border-[#00647c] outline-none transition-all text-[#3e484d]"
                       />
                     </div>
-                    <input value={profileForm.subjects} onChange={(event) => setProfileForm((current) => ({ ...current, subjects: event.target.value }))} placeholder="Subjects, comma separated" className="w-full px-3 py-2 border rounded-lg" />
-                    <input value={profileForm.location} onChange={(event) => setProfileForm((current) => ({ ...current, location: event.target.value }))} placeholder="Location" className="w-full px-3 py-2 border rounded-lg" />
-                    <input value={profileForm.budget_max} type="number" min="0" onChange={(event) => setProfileForm((current) => ({ ...current, budget_max: event.target.value }))} placeholder="Maximum budget (LKR)" className="w-full px-3 py-2 border rounded-lg" />
-                    <textarea value={profileForm.learning_goals} onChange={(event) => setProfileForm((current) => ({ ...current, learning_goals: event.target.value }))} placeholder="Learning goals" className="w-full px-3 py-2 border rounded-lg" />
-                    <button
-                      type="submit"
-                      className="px-4 py-2 bg-[#00647c] text-white font-semibold rounded-lg font-geist"
-                    >
-                      Save profile & regenerate match embedding
-                    </button>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <label className="text-sm font-semibold text-[#121c2a] block">Subjects</label>
+                        <input 
+                          type="text"
+                          value={profileForm.subjects} 
+                          onChange={(event) => setProfileForm((current) => ({ ...current, subjects: event.target.value }))} 
+                          placeholder="Subjects, comma separated" 
+                          className="w-full px-4 py-3 bg-[#f8f9ff]/50 border border-[#d9e3f6] rounded-2xl focus:ring-2 focus:ring-[#00647c]/20 focus:border-[#00647c] outline-none transition-all text-[#3e484d]" 
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-semibold text-[#121c2a] block">Location</label>
+                        <input 
+                          type="text"
+                          value={profileForm.location} 
+                          onChange={(event) => setProfileForm((current) => ({ ...current, location: event.target.value }))} 
+                          placeholder="City or Region" 
+                          className="w-full px-4 py-3 bg-[#f8f9ff]/50 border border-[#d9e3f6] rounded-2xl focus:ring-2 focus:ring-[#00647c]/20 focus:border-[#00647c] outline-none transition-all text-[#3e484d]" 
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <label className="text-sm font-semibold text-[#121c2a] block">Maximum Budget (LKR)</label>
+                        <input 
+                          type="number" 
+                          min="0" 
+                          value={profileForm.budget_max} 
+                          onChange={(event) => setProfileForm((current) => ({ ...current, budget_max: event.target.value }))} 
+                          placeholder="e.g. 5000" 
+                          className="w-full px-4 py-3 bg-[#f8f9ff]/50 border border-[#d9e3f6] rounded-2xl focus:ring-2 focus:ring-[#00647c]/20 focus:border-[#00647c] outline-none transition-all text-[#3e484d]" 
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-sm font-semibold text-[#121c2a] block">Learning Goals</label>
+                      <textarea 
+                        value={profileForm.learning_goals} 
+                        onChange={(event) => setProfileForm((current) => ({ ...current, learning_goals: event.target.value }))} 
+                        placeholder="What do you want to achieve?" 
+                        rows={4}
+                        className="w-full px-4 py-3 bg-[#f8f9ff]/50 border border-[#d9e3f6] rounded-2xl focus:ring-2 focus:ring-[#00647c]/20 focus:border-[#00647c] outline-none transition-all text-[#3e484d] resize-y" 
+                      />
+                    </div>
+
+                    <div className="pt-4">
+                      <button
+                        type="submit"
+                        className="px-6 py-3 bg-[#00647c] hover:bg-[#007f9d] text-white font-semibold rounded-xl font-geist shadow-sm transition-colors duration-200"
+                      >
+                        Save profile & regenerate match embedding
+                      </button>
+                    </div>
                   </form>
                 </div>
               )}
@@ -425,6 +505,7 @@ export function App() {
             setIsLoggedIn(true);
             setUserName(name);
             handleRoleChange(selectedRole);
+            if (selectedRole === 'learner') setActiveTab('profile');
             void supabase.auth.getUser().then(({ data }) => {
               if (data.user) { setCurrentUserId(data.user.id); void loadData(data.user.id, selectedRole); }
             });

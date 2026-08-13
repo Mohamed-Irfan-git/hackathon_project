@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import type { Opportunity } from '../types';
+import type { Booking, Opportunity } from '../types';
 import { OpportunityCard } from '../components/common/OpportunityCard';
 import { Modal } from '../components/common/Modal';
 import { EmptyState } from '../components/common/EmptyState';
@@ -11,6 +11,10 @@ interface DiscoverOpportunitiesProps {
   onBookOpportunity: (opp: Opportunity) => void;
   onAskRAG: (query: string) => void;
   onSearch?: (filters: { subject?: string; level?: string; location?: string; search?: string }) => void;
+  recommendedOpportunities?: Opportunity[];
+  bookingOpportunityId?: string | null;
+  bookings?: Booking[];
+  isAuthenticated?: boolean;
 }
 
 export const DiscoverOpportunities: React.FC<DiscoverOpportunitiesProps> = ({
@@ -18,6 +22,10 @@ export const DiscoverOpportunities: React.FC<DiscoverOpportunitiesProps> = ({
   onBookOpportunity,
   onAskRAG,
   onSearch,
+  recommendedOpportunities = [],
+  bookingOpportunityId,
+  bookings = [],
+  isAuthenticated = false,
 }) => {
   const [search, setSearch] = useState('');
   const [subjectFilter, setSubjectFilter] = useState('all');
@@ -25,14 +33,20 @@ export const DiscoverOpportunities: React.FC<DiscoverOpportunitiesProps> = ({
   const [deliveryFilter, setDeliveryFilter] = useState('all');
   const [tab, setTab] = useState<'all' | 'ai'>('all');
   const [selectedOpp, setSelectedOpp] = useState<Opportunity | null>(null);
+  const [bookingConfirmation, setBookingConfirmation] = useState<Opportunity | null>(null);
+  const bookingByOpportunity = new Map(bookings.map((booking) => [booking.opportunity_id, booking.status]));
+  const beginBooking = (opportunity: Opportunity) => {
+    if (!isAuthenticated) { onBookOpportunity(opportunity); return; }
+    setBookingConfirmation(opportunity);
+  };
 
   useEffect(() => {
     const timer = window.setTimeout(() => onSearch?.({ subject: subjectFilter === 'all' ? undefined : subjectFilter, level: levelFilter === 'all' ? undefined : levelFilter, search }), 250);
     return () => window.clearTimeout(timer);
   }, [search, subjectFilter, levelFilter, onSearch]);
 
-  const filteredOpportunities = opportunities.filter((opp) => {
-    if (tab === 'ai' && (!opp.match_score || opp.match_score < 0.8)) return false;
+  const baseOpportunities = tab === 'ai' ? recommendedOpportunities : opportunities;
+  const filteredOpportunities = baseOpportunities.filter((opp) => {
 
     if (search) {
       const q = search.toLowerCase();
@@ -95,7 +109,7 @@ export const DiscoverOpportunities: React.FC<DiscoverOpportunitiesProps> = ({
             }`}
           >
             <Sparkles size={14} className="text-[#ea580c]" />
-            <span>AI Recommended</span>
+            <span>AI Recommended ({recommendedOpportunities.length})</span>
           </button>
         </div>
       </div>
@@ -161,8 +175,8 @@ export const DiscoverOpportunities: React.FC<DiscoverOpportunitiesProps> = ({
       {/* Grid of Opportunity Cards */}
       {filteredOpportunities.length === 0 ? (
         <EmptyState
-          title="No opportunities found"
-          description="No educational programs match your selected search terms or filters."
+          title={tab === 'ai' ? 'No AI matches yet' : 'No opportunities found'}
+          description={tab === 'ai' ? 'Complete your learner preferences and save your profile to generate personalized matches.' : 'No educational programs match your selected search terms or filters.'}
           actionLabel="Reset Filters"
           onAction={() => {
             setSearch('');
@@ -179,8 +193,11 @@ export const DiscoverOpportunities: React.FC<DiscoverOpportunitiesProps> = ({
               key={opp.id}
               opportunity={opp}
               onSelect={(o) => setSelectedOpp(o)}
-              onBook={onBookOpportunity}
+              onBook={beginBooking}
               onAskAI={(o) => onAskRAG(`Can you tell me more about ${o.title}?`)}
+              isBooking={bookingOpportunityId === opp.id}
+              bookingStatus={bookingByOpportunity.get(opp.id)}
+              isAuthenticated={isAuthenticated}
             />
           ))}
         </div>
@@ -289,14 +306,49 @@ export const DiscoverOpportunities: React.FC<DiscoverOpportunitiesProps> = ({
 
               <button
                 type="button"
+                disabled={Boolean(bookingByOpportunity.get(selectedOpp.id)) || bookingOpportunityId === selectedOpp.id}
                 onClick={() => {
                   const opp = selectedOpp;
                   setSelectedOpp(null);
-                  onBookOpportunity(opp);
+                  beginBooking(opp);
                 }}
-                className="px-5 py-2 bg-[#00647c] hover:bg-[#004e61] text-white text-xs font-semibold rounded-lg transition-colors shadow-xs"
+                className="px-5 py-2 bg-[#00647c] hover:bg-[#004e61] disabled:cursor-not-allowed disabled:opacity-60 text-white text-xs font-semibold rounded-lg transition-colors shadow-xs"
               >
-                Book / Enroll Now
+                {bookingByOpportunity.get(selectedOpp.id)
+                  ? 'Enrollment request already sent'
+                  : isAuthenticated ? 'Request to enroll' : 'Sign in to enroll'}
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {bookingConfirmation && (
+        <Modal
+          isOpen={Boolean(bookingConfirmation)}
+          onClose={() => setBookingConfirmation(null)}
+          title="Confirm your enrollment request"
+          maxWidth="md"
+        >
+          <div className="space-y-5">
+            <div className="rounded-xl border border-[#d9e3f6] bg-[#f8f9ff] p-4">
+              <p className="font-bold text-[#121c2a]">{bookingConfirmation.title}</p>
+              <p className="mt-1 text-sm text-[#3e484d]">
+                {bookingConfirmation.price === 0 ? 'Free / sponsored' : `LKR ${bookingConfirmation.price.toLocaleString()}`} · {bookingConfirmation.delivery_mode}
+              </p>
+            </div>
+            <p className="text-sm leading-relaxed text-[#3e484d]">
+              This sends an enrollment request to the provider. You will see its status in My Bookings once it is submitted.
+            </p>
+            <div className="flex justify-end gap-3 border-t border-[#eff4ff] pt-4">
+              <button type="button" onClick={() => setBookingConfirmation(null)} className="px-4 py-2 text-xs font-semibold text-[#3e484d] hover:text-[#121c2a]">Not now</button>
+              <button
+                type="button"
+                disabled={bookingOpportunityId === bookingConfirmation.id}
+                onClick={() => { const opportunity = bookingConfirmation; setBookingConfirmation(null); onBookOpportunity(opportunity); }}
+                className="rounded-lg bg-[#00647c] px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-[#004e61] disabled:opacity-60"
+              >
+                {bookingOpportunityId === bookingConfirmation.id ? 'Sending…' : 'Send request'}
               </button>
             </div>
           </div>

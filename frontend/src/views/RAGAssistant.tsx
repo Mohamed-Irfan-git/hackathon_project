@@ -65,6 +65,7 @@ export const RAGAssistant: React.FC<RAGAssistantProps> = ({
         sender: 'assistant',
         text: res.answer,
         sources: res.sources,
+        cached: res.cached,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       };
       setMessages((prev) => [...prev, assistantMsg]);
@@ -152,6 +153,8 @@ export const RAGAssistant: React.FC<RAGAssistantProps> = ({
               </div>
 
               <p className="leading-relaxed whitespace-pre-line">{msg.text}</p>
+              {msg.sender === 'assistant' && msg.cached && <span className="inline-flex rounded-full bg-[#e6eeff] px-2 py-0.5 text-[10px] font-semibold text-[#00647c]">Fast answer from verified cache</span>}
+              {msg.sender === 'assistant' && msg.sources?.length === 0 && msg.text === 'No matching opportunities found in the verified knowledge base.' && <p className="text-[11px] text-[#6e797e]">No relevant verified source was found, so no answer was generated.</p>}
 
               {/* Source Citations */}
               {msg.sources && msg.sources.length > 0 && (

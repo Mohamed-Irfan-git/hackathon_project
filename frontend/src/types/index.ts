@@ -143,6 +143,7 @@ export interface RAGResponse {
   answer: string;
   sources: RAGSource[];
   confidence: 'high' | 'medium' | 'low';
+  cached?: boolean;
 }
 
 export interface ChatMessage {
@@ -150,5 +151,6 @@ export interface ChatMessage {
   sender: 'user' | 'assistant';
   text: string;
   sources?: RAGSource[];
+  cached?: boolean;
   timestamp: string;
 }

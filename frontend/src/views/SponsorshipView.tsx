@@ -10,6 +10,7 @@ interface SponsorshipViewProps {
   sponsorships: Sponsorship[];
   requests: SponsorshipRequest[];
   onCreatePledge: (req: SponsorshipRequest, amount: number, note: string) => void;
+  onCreateRequest?: (title: string, reason: string, amount: number) => Promise<void>;
 }
 
 export const SponsorshipView: React.FC<SponsorshipViewProps> = ({
@@ -17,11 +18,17 @@ export const SponsorshipView: React.FC<SponsorshipViewProps> = ({
   sponsorships,
   requests,
   onCreatePledge,
+  onCreateRequest,
 }) => {
   const [selectedReq, setSelectedReq] = useState<SponsorshipRequest | null>(null);
   const [pledgeAmount, setPledgeAmount] = useState<number>(5000);
   const [pledgeNote, setPledgeNote] = useState('');
   const [isSuccessModal, setIsSuccessModal] = useState(false);
+  const [isRequestModal, setIsRequestModal] = useState(false);
+  const [requestTitle, setRequestTitle] = useState('');
+  const [requestReason, setRequestReason] = useState('');
+  const [requestAmount, setRequestAmount] = useState<number>(0);
+  const [isSubmittingRequest, setIsSubmittingRequest] = useState(false);
 
   const totalContributed = sponsorships.reduce((sum, s) => sum + s.amount, 0);
 
@@ -50,7 +57,7 @@ export const SponsorshipView: React.FC<SponsorshipViewProps> = ({
         {role === 'learner' && (
           <button
             type="button"
-            onClick={() => alert('Sponsorship request submitted for review!')}
+            onClick={() => setIsRequestModal(true)}
             className="px-4 py-2 bg-[#00647c] hover:bg-[#004e61] text-white text-xs font-semibold rounded-xl transition-colors flex items-center gap-1.5 shadow-xs font-geist self-start"
           >
             <PlusCircle size={14} />
@@ -191,6 +198,17 @@ export const SponsorshipView: React.FC<SponsorshipViewProps> = ({
       </div>
 
       {/* Pledge Creation Modal */}
+      {isRequestModal && (
+        <Modal isOpen={isRequestModal} onClose={() => setIsRequestModal(false)} title="Request Educational Sponsorship" maxWidth="md">
+          <form onSubmit={async (event) => { event.preventDefault(); if (!onCreateRequest) return; setIsSubmittingRequest(true); try { await onCreateRequest(requestTitle, requestReason, requestAmount); setIsRequestModal(false); setRequestTitle(''); setRequestReason(''); setRequestAmount(0); } finally { setIsSubmittingRequest(false); } }} className="space-y-4">
+            <p className="text-xs text-[#3e484d]">Describe the learning opportunity you need help funding. Sponsors can see this request, not your private profile details.</p>
+            <div><label className="mb-1 block text-xs font-semibold">Request title</label><input required value={requestTitle} onChange={(event) => setRequestTitle(event.target.value)} placeholder="e.g. A/L ICT tuition support" className="w-full rounded-lg border border-[#d9e3f6] px-3 py-2 text-xs" /></div>
+            <div><label className="mb-1 block text-xs font-semibold">Why do you need support?</label><textarea required value={requestReason} onChange={(event) => setRequestReason(event.target.value)} rows={4} className="w-full rounded-lg border border-[#d9e3f6] px-3 py-2 text-xs" /></div>
+            <div><label className="mb-1 block text-xs font-semibold">Amount needed (LKR)</label><input required min="1" type="number" value={requestAmount || ''} onChange={(event) => setRequestAmount(Number(event.target.value))} className="w-full rounded-lg border border-[#d9e3f6] px-3 py-2 text-xs" /></div>
+            <button disabled={isSubmittingRequest} className="w-full rounded-lg bg-[#00647c] py-2 text-xs font-semibold text-white disabled:opacity-50">{isSubmittingRequest ? 'Submitting…' : 'Submit request'}</button>
+          </form>
+        </Modal>
+      )}
       {selectedReq && (
         <Modal
           isOpen={Boolean(selectedReq)}
