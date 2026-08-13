@@ -180,10 +180,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             />
           </div>
 
-          <div className="p-4 bg-white rounded-2xl border border-[#d9e3f6] shadow-xs space-y-2">
-            <h3 className="font-bold text-sm text-[#121c2a] font-display">Live Endpoint Verification</h3>
-            <p className="text-xs text-[#3e484d] leading-relaxed">
-              These metrics are pulled live from the <code>GET /functions/v1/impact-summary</code> endpoint for real-time demonstration during the hackathon evaluation.
+          <div className="rounded-2xl border border-[#b7eaff] bg-[#f0fbff] p-4 shadow-xs">
+            <h3 className="font-bold text-sm text-[#121c2a] font-display">Live platform data</h3>
+            <p className="mt-1 text-xs leading-relaxed text-[#3e484d]">
+              These figures are calculated from current provider, opportunity, booking, and sponsorship records. Refresh the page to retrieve the latest totals.
             </p>
           </div>
         </div>
