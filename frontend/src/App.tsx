@@ -84,7 +84,8 @@ export function App() {
       if (userRole === 'provider') {
         const { data } = await supabase.from('provider_profiles').select('*').eq('user_id', userId).single();
         if (data) setProviders([{ id: data.user_id, user_id: data.user_id, organization_name: userName, bio: data.bio, verification_status: data.status }]);
-        setBookings(await api.getBookings());
+        const [providerOpportunities, providerBookings] = await Promise.all([api.getProviderOpportunities(userId), api.getBookings()]);
+        setOpportunities(providerOpportunities); setBookings(providerBookings);
       }
     } catch (error) { showToast(error instanceof Error ? error.message : 'Unable to load live data.'); }
     finally { setIsLoading(false); }
@@ -107,20 +108,48 @@ export function App() {
   }, []);
 
   useEffect(() => {
+      image
     // Authentication restoration updates state only after this external check completes.
     if (!isSupabaseConfigured) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsAuthLoading(false);
       return;
     }
+
+    const url = new URL(window.location.href);
+    if (url.searchParams.get('confirmed') !== '1') return;
+    url.searchParams.delete('confirmed');
+    window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`);
+    setAuthMode('login');
+    setIsAuthOpen(true);
+    showToast('Email confirmed. Sign in to continue.');
+  }, []);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured) { setIsAuthLoading(false); return; }
+     main
     supabase.auth.getUser().then(async (result) => {
       const data = result.data;
       if (!data.user) return;
-      const { data: appUser } = await supabase.from('users').select('role, full_name').eq('id', data.user.id).single();
+      let { data: appUser } = await supabase.from('users').select('role, full_name').eq('id', data.user.id).maybeSingle();
+      if (!appUser) {
+        const metadata = data.user.user_metadata ?? {};
+        const role = ['learner', 'provider', 'sponsor'].includes(metadata.app_role)
+          ? metadata.app_role as UserRole
+          : 'learner';
+        const fullName = typeof metadata.full_name === 'string' && metadata.full_name.trim()
+          ? metadata.full_name.trim()
+          : data.user.email?.split('@')[0] || 'User';
+        const { error } = await supabase.functions.invoke('complete-profile', { body: { role, full_name: fullName, profile: {} } });
+        if (error) throw error;
+        ({ data: appUser } = await supabase.from('users').select('role, full_name').eq('id', data.user.id).single());
+      }
       setIsLoggedIn(true); setCurrentUserId(data.user.id); setUserName(appUser?.full_name || data.user.email || 'User');
       if (appUser?.role) { handleRoleChange(appUser.role); void loadData(data.user.id, appUser.role); }
     }).finally(() => setIsAuthLoading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
+
+main
   }, []);
 
   // Handlers for user interactions
@@ -146,11 +175,11 @@ export function App() {
   }, []);
 
   const handleRespondBooking = async (bookingId: string, decision: 'accepted' | 'rejected') => {
-    try { await api.respondBooking(bookingId, decision); await loadData(); showToast(`Booking request ${decision}.`); } catch (error) { showToast(error instanceof Error ? error.message : 'Booking update failed.'); }
+    try { await api.respondBooking(bookingId, decision); if (currentUserId) await loadData(currentUserId, 'provider'); showToast(`Booking request ${decision}.`); } catch (error) { showToast(error instanceof Error ? error.message : 'Booking update failed.'); }
   };
 
   const handleCreateOpportunity = async (data: Partial<Opportunity>) => {
-    try { const newOpp = await api.upsertOpportunity(data); setOpportunities((prev) => [newOpp, ...prev]); showToast(`Opportunity "${newOpp.title}" saved and embedded.`); } catch (error) { showToast(error instanceof Error ? error.message : 'Opportunity save failed.'); }
+    try { const newOpp = await api.upsertOpportunity(data); setOpportunities((prev) => [newOpp, ...prev]); showToast(newOpp.status === 'draft' ? `Saved "${newOpp.title}" as a draft. It can be published after verification.` : `Opportunity "${newOpp.title}" published and embedded.`); } catch (error) { showToast(error instanceof Error ? error.message : 'Opportunity save failed.'); }
   };
 
   const handleCreatePledge = async (

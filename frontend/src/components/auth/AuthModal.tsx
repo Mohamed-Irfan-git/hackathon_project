@@ -33,12 +33,34 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       if (mode === 'login') {
         const { data, error: authError } = await supabase.auth.signInWithPassword({ email, password });
         if (authError || !data.user) throw authError || new Error('Sign in failed');
-        const { data: appUser } = await supabase.from('users').select('role, full_name').eq('id', data.user.id).single();
+        let { data: appUser } = await supabase.from('users').select('role, full_name').eq('id', data.user.id).maybeSingle();
+        if (!appUser) {
+          const metadata = data.user.user_metadata ?? {};
+          const role = ['learner', 'provider', 'sponsor'].includes(metadata.app_role)
+            ? metadata.app_role as UserRole
+            : 'learner';
+          const name = typeof metadata.full_name === 'string' && metadata.full_name.trim()
+            ? metadata.full_name.trim()
+            : data.user.email?.split('@')[0] || 'User';
+          // A confirmed account gets its app user/profile on its first successful login.
+          const { error: profileError } = await supabase.functions.invoke('complete-profile', {
+            body: { role, full_name: name, profile: {} },
+          });
+          if (profileError) throw profileError;
+          ({ data: appUser } = await supabase.from('users').select('role, full_name').eq('id', data.user.id).single());
+        }
         onSuccess((appUser?.role || 'learner') as UserRole, appUser?.full_name || data.user.email || 'User');
       } else {
-        const { data, error: authError } = await supabase.auth.signUp({ email, password });
+        const { data, error: authError } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: { app_role: selectedRole, full_name: fullName },
+            emailRedirectTo: `${window.location.origin}?confirmed=1`,
+          },
+        });
         if (authError || !data.user) throw authError || new Error('Sign up failed');
-        if (!data.session) throw new Error('Check your email to confirm the account, then sign in.');
+        if (!data.session) throw new Error('Check your email to confirm the account, then sign in. Your profile will be created after confirmation.');
         const { error: profileError } = await supabase.functions.invoke('complete-profile', { body: { role: selectedRole, full_name: fullName, profile: {} } });
         if (profileError) throw profileError;
         onSuccess(selectedRole, fullName);
