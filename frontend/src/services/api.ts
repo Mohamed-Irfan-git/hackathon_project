@@ -153,4 +153,11 @@ export const api = {
     return this.upsertKnowledgeBaseEntry({ ...entry, status: entry.status === 'verified' ? 'draft' : 'verified' });
   },
   async getImpactSummary(): Promise<ImpactMetrics> { return invoke<ImpactMetrics>('impact-summary'); },
+  async getAdminOpportunities(): Promise<Opportunity[]> {
+    const rows = await invoke<DbOpportunity[]>('admin-list-opportunities');
+    return rows.map(toOpportunity);
+  },
+  async moderateOpportunity(opportunityId: string, status: 'draft' | 'active' | 'closed'): Promise<void> {
+    await invoke('admin-moderate-opportunity', { opportunity_id: opportunityId, status });
+  },
 };

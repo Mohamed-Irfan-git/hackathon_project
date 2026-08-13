@@ -29,6 +29,8 @@ interface AdminDashboardProps {
   onUpsertKnowledge: (entry: Partial<KnowledgeBaseEntry>) => void;
   onToggleKnowledgeStatus: (id: string) => void;
   onIndexKnowledge: () => void;
+  onModerateOpportunity: (id: string, status: 'draft' | 'active' | 'closed') => void;
+  initialTab: 'metrics' | 'providers' | 'rag' | 'opportunities';
 }
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({
@@ -40,8 +42,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onUpsertKnowledge,
   onToggleKnowledgeStatus,
   onIndexKnowledge,
+  onModerateOpportunity,
+  initialTab,
 }) => {
-  const [activeTab, setActiveTab] = useState<'metrics' | 'providers' | 'rag' | 'opportunities'>('metrics');
+  const [activeTab, setActiveTab] = useState<'metrics' | 'providers' | 'rag' | 'opportunities'>(initialTab);
+  React.useEffect(() => setActiveTab(initialTab), [initialTab]);
 
   // KB Modal state
   const [isKbModalOpen, setIsKbModalOpen] = useState(false);
@@ -342,6 +347,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   <th className="py-3 px-4">Type</th>
                   <th className="py-3 px-4">Fee</th>
                   <th className="py-3 px-4">Status</th>
+                  <th className="py-3 px-4 text-right">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#eff4ff]">
@@ -355,6 +361,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     </td>
                     <td className="py-3 px-4">
                       <Badge type={opp.status} />
+                    </td>
+                    <td className="py-3 px-4 text-right">
+                      <select value={opp.status} onChange={(event) => onModerateOpportunity(opp.id, event.target.value as 'draft' | 'active' | 'closed')} className="rounded border border-[#d9e3f6] bg-white px-2 py-1 text-xs">
+                        <option value="draft">Draft</option><option value="active">Active</option><option value="closed">Closed</option>
+                      </select>
                     </td>
                   </tr>
                 ))}

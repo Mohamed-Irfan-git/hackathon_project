@@ -78,8 +78,8 @@ export function App() {
       }
       if (userRole === 'sponsor') { const [history, requests] = await Promise.all([api.getSponsorships(), api.getSponsorshipRequests()]); setSponsorships(history); setSponsorshipRequests(requests); }
       if (userRole === 'admin') {
-        const [metrics, kb, providerRows] = await Promise.all([api.getImpactSummary(), api.getKnowledgeBase(), api.getProviders()]);
-        setImpactMetrics(metrics); setKnowledgeBase(kb); setProviders(providerRows);
+        const [metrics, kb, providerRows, allOpportunities] = await Promise.all([api.getImpactSummary(), api.getKnowledgeBase(), api.getProviders(), api.getAdminOpportunities()]);
+        setImpactMetrics(metrics); setKnowledgeBase(kb); setProviders(providerRows); setOpportunities(allOpportunities);
       }
       if (userRole === 'provider') {
         const { data } = await supabase.from('provider_profiles').select('*').eq('user_id', userId).single();
@@ -184,6 +184,10 @@ export function App() {
     const updated = await api.verifyProvider(providerId, decision);
     setProviders((prev) => prev.map((p) => (p.id === providerId ? updated : p)));
     showToast(`Provider status updated to ${decision}!`);
+  };
+  const handleModerateOpportunity = async (opportunityId: string, status: 'draft' | 'active' | 'closed') => {
+    try { await api.moderateOpportunity(opportunityId, status); if (currentUserId) await loadData(currentUserId, 'admin'); showToast(`Opportunity status changed to ${status}.`); }
+    catch (error) { showToast(error instanceof Error ? error.message : 'Opportunity moderation failed.'); }
   };
 
   const handleUpsertKnowledge = async (entry: Partial<KnowledgeBaseEntry>) => {
@@ -441,6 +445,7 @@ export function App() {
                 activeTab === 'admin-providers' ||
                 activeTab === 'admin-opportunities') && (
                 <AdminDashboard
+                  initialTab={activeTab === 'admin-knowledge' ? 'rag' : activeTab === 'admin-providers' ? 'providers' : activeTab === 'admin-opportunities' ? 'opportunities' : 'metrics'}
                   impactMetrics={impactMetrics}
                   providers={providers}
                   knowledgeBase={knowledgeBase}
@@ -449,6 +454,7 @@ export function App() {
                   onUpsertKnowledge={handleUpsertKnowledge}
                   onToggleKnowledgeStatus={handleToggleKnowledgeStatus}
                   onIndexKnowledge={handleIndexKnowledge}
+                  onModerateOpportunity={handleModerateOpportunity}
                 />
               )}
             </>
