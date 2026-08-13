@@ -233,7 +233,7 @@ export const ProviderDashboard: React.FC<ProviderDashboardProps> = ({
                 <label className="block text-xs font-semibold text-[#3e484d] mb-1">Type</label>
                 <select
                   value={type}
-                  onChange={(e) => setType(e.target.value as any)}
+                  onChange={(e) => setType(e.target.value as Opportunity['type'])}
                   className="w-full px-3 py-2 text-xs rounded-lg border border-[#d9e3f6] bg-[#f8f9ff] focus:outline-none focus:border-[#00647c]"
                 >
                   <option value="COURSE">COURSE</option>
@@ -286,7 +286,7 @@ export const ProviderDashboard: React.FC<ProviderDashboardProps> = ({
                 <label className="block text-xs font-semibold text-[#3e484d] mb-1">Mode</label>
                 <select
                   value={deliveryMode}
-                  onChange={(e) => setDeliveryMode(e.target.value as any)}
+                  onChange={(e) => setDeliveryMode(e.target.value as 'online' | 'in-person')}
                   className="w-full px-3 py-2 text-xs rounded-lg border border-[#d9e3f6] bg-[#f8f9ff] focus:outline-none focus:border-[#00647c]"
                 >
                   <option value="online">Online</option>

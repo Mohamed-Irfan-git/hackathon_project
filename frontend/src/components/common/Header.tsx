@@ -1,7 +1,9 @@
 import React from 'react';
 import type { UserRole } from '../../types';
 import { Sparkles, LogIn, Menu, Shield, Globe } from 'lucide-react';
-import Logo from '../../logo/Logo.png';
+// `?url` makes Vite emit a stable public URL for this local image in both
+// development and production builds.
+import logoUrl from '../../logo/Logo.png?url';
 
 interface HeaderProps {
   currentRole: UserRole;
@@ -26,7 +28,8 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   return (
     <header className="sticky top-0 z-40 bg-white border-b border-[#d9e3f6] shadow-xs">
-      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4 overflow-hidden">
+      {/* Increased header height (h-20) to accommodate the larger logo safely */}
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 h-20 flex items-center justify-between gap-4 overflow-hidden">
         
         {/* Left branding & mobile menu */}
         <div className="flex items-center gap-3">
@@ -45,11 +48,11 @@ export const Header: React.FC<HeaderProps> = ({
             onClick={onHome}
             className="flex items-center gap-2 cursor-pointer group"
           >
-            {/* Lowered scale to 1.5x on mobile and 1.8x on desktop to reduce size */}
+            {/* Enlarged the logo by increasing height (h-20), max-width, and applying a scale transform */}
             <img 
-              src={Logo} 
+              src={logoUrl} 
               alt="TakeUForward Logo" 
-              className="h-16 w-auto object-contain transform scale-[1.5] sm:scale-[1.8] origin-left mix-blend-multiply" 
+              className="h-20 w-auto max-w-[280px] object-contain mix-blend-multiply scale-125 origin-left" 
             />
           </div>
         </div>

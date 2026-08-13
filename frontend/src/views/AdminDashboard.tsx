@@ -29,6 +29,8 @@ interface AdminDashboardProps {
   onUpsertKnowledge: (entry: Partial<KnowledgeBaseEntry>) => void;
   onToggleKnowledgeStatus: (id: string) => void;
   onIndexKnowledge: () => void;
+  activeTab: 'metrics' | 'providers' | 'rag' | 'opportunities';
+  onSelectTab: (tab: 'metrics' | 'providers' | 'rag' | 'opportunities') => void;
 }
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({
@@ -40,8 +42,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onUpsertKnowledge,
   onToggleKnowledgeStatus,
   onIndexKnowledge,
+  activeTab,
+  onSelectTab,
 }) => {
-  const [activeTab, setActiveTab] = useState<'metrics' | 'providers' | 'rag' | 'opportunities'>('metrics');
 
   // KB Modal state
   const [isKbModalOpen, setIsKbModalOpen] = useState(false);
@@ -88,7 +91,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         <div className="flex items-center p-1 bg-[#e6eeff] rounded-xl border border-[#d9e3f6] text-xs font-medium font-geist self-start">
           <button
             type="button"
-            onClick={() => setActiveTab('metrics')}
+            onClick={() => onSelectTab('metrics')}
             className={`px-3 py-1.5 rounded-lg transition-all ${
               activeTab === 'metrics'
                 ? 'bg-white text-[#00647c] font-semibold shadow-xs'
@@ -99,7 +102,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           </button>
           <button
             type="button"
-            onClick={() => setActiveTab('providers')}
+            onClick={() => onSelectTab('providers')}
             className={`px-3 py-1.5 rounded-lg transition-all ${
               activeTab === 'providers'
                 ? 'bg-white text-[#00647c] font-semibold shadow-xs'
@@ -110,7 +113,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           </button>
           <button
             type="button"
-            onClick={() => setActiveTab('rag')}
+            onClick={() => onSelectTab('rag')}
             className={`px-3 py-1.5 rounded-lg transition-all ${
               activeTab === 'rag'
                 ? 'bg-white text-[#00647c] font-semibold shadow-xs'
@@ -121,7 +124,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           </button>
           <button
             type="button"
-            onClick={() => setActiveTab('opportunities')}
+            onClick={() => onSelectTab('opportunities')}
             className={`px-3 py-1.5 rounded-lg transition-all ${
               activeTab === 'opportunities'
                 ? 'bg-white text-[#00647c] font-semibold shadow-xs'
@@ -392,7 +395,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <label className="block text-xs font-semibold text-[#3e484d] mb-1">Category</label>
                 <select
                   value={kbCategory}
-                  onChange={(e) => setKbCategory(e.target.value as any)}
+                  onChange={(e) => setKbCategory(e.target.value as KnowledgeCategory)}
                   className="w-full px-3 py-2 text-xs rounded-lg border border-[#d9e3f6] bg-[#f8f9ff] focus:outline-none focus:border-[#00647c]"
                 >
                   <option value="scholarship">scholarship</option>
@@ -433,7 +436,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <label className="text-xs text-[#3e484d] font-semibold">Status:</label>
                 <select
                   value={kbStatus}
-                  onChange={(e) => setKbStatus(e.target.value as any)}
+                  onChange={(e) => setKbStatus(e.target.value as 'draft' | 'verified')}
                   className="px-2 py-1 text-xs rounded border border-[#d9e3f6]"
                 >
                   <option value="verified">Verified (RAG Searchable)</option>

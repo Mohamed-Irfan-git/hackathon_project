@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import type { ChatMessage, RAGSource } from '../types';
 import { api } from '../services/api';
 import { AITag } from '../components/common/AITag';
@@ -37,14 +37,7 @@ export const RAGAssistant: React.FC<RAGAssistantProps> = ({
     scrollToBottom();
   }, [messages, loading]);
 
-  useEffect(() => {
-    if (initialQuery && initialQuery.trim()) {
-      handleSendQuery(initialQuery);
-      if (onClearInitialQuery) onClearInitialQuery();
-    }
-  }, [initialQuery]);
-
-  const handleSendQuery = async (queryText: string) => {
+  const handleSendQuery = useCallback(async (queryText: string) => {
     if (!queryText.trim() || loading) return;
 
     const userMsg: ChatMessage = {
@@ -69,7 +62,7 @@ export const RAGAssistant: React.FC<RAGAssistantProps> = ({
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       };
       setMessages((prev) => [...prev, assistantMsg]);
-    } catch (err) {
+    } catch {
       setMessages((prev) => [
         ...prev,
         {
@@ -82,7 +75,16 @@ export const RAGAssistant: React.FC<RAGAssistantProps> = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, [learnerId, loading]);
+
+  useEffect(() => {
+    if (initialQuery && initialQuery.trim()) {
+      // This request is intentionally initiated by a navigation handoff.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      void handleSendQuery(initialQuery);
+      onClearInitialQuery?.();
+    }
+  }, [initialQuery, handleSendQuery, onClearInitialQuery]);
 
   const samplePrompts = [
     "I'm an A/L student interested in ICT with a limited budget",

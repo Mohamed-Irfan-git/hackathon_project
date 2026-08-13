@@ -90,21 +90,6 @@ export function App() {
     finally { setIsLoading(false); }
   };
 
-  useEffect(() => {
-    void loadData();
-  }, []);
-
-  useEffect(() => {
-    if (!isSupabaseConfigured) { setIsAuthLoading(false); return; }
-    supabase.auth.getUser().then(async (result) => {
-      const data = result.data;
-      if (!data.user) return;
-      const { data: appUser } = await supabase.from('users').select('role, full_name').eq('id', data.user.id).single();
-      setIsLoggedIn(true); setCurrentUserId(data.user.id); setUserName(appUser?.full_name || data.user.email || 'User');
-      if (appUser?.role) { handleRoleChange(appUser.role); void loadData(data.user.id, appUser.role); }
-    }).finally(() => setIsAuthLoading(false));
-  }, []);
-
   // Sync role switch with default tabs
   const handleRoleChange = (newRole: UserRole) => {
     setRole(newRole);
@@ -113,6 +98,30 @@ export function App() {
     else if (newRole === 'sponsor') setActiveTab('sponsor-dashboard');
     else if (newRole === 'admin') setActiveTab('admin-impact');
   };
+
+  useEffect(() => {
+    // Initial data loading intentionally updates the application data state.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    // Authentication restoration updates state only after this external check completes.
+    if (!isSupabaseConfigured) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setIsAuthLoading(false);
+      return;
+    }
+    supabase.auth.getUser().then(async (result) => {
+      const data = result.data;
+      if (!data.user) return;
+      const { data: appUser } = await supabase.from('users').select('role, full_name').eq('id', data.user.id).single();
+      setIsLoggedIn(true); setCurrentUserId(data.user.id); setUserName(appUser?.full_name || data.user.email || 'User');
+      if (appUser?.role) { handleRoleChange(appUser.role); void loadData(data.user.id, appUser.role); }
+    }).finally(() => setIsAuthLoading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Handlers for user interactions
   const handleBookOpportunity = async (opp: Opportunity) => {
@@ -159,7 +168,7 @@ export function App() {
 
   const handleVerifyProvider = async (providerId: string, decision: 'verified' | 'rejected') => {
     const updated = await api.verifyProvider(providerId, decision);
-    setProviders((prev) => prev.map((p) => (p.id === providerId ? updated : p)));
+    setProviders((prev) => prev.map((p) => (p.id === providerId ? { ...p, ...updated } : p)));
     showToast(`Provider status updated to ${decision}!`);
   };
 
@@ -481,6 +490,8 @@ export function App() {
                   onUpsertKnowledge={handleUpsertKnowledge}
                   onToggleKnowledgeStatus={handleToggleKnowledgeStatus}
                   onIndexKnowledge={handleIndexKnowledge}
+                  activeTab={activeTab === 'admin-providers' ? 'providers' : activeTab === 'admin-knowledge' ? 'rag' : activeTab === 'admin-opportunities' ? 'opportunities' : 'metrics'}
+                  onSelectTab={(tab) => setActiveTab(tab === 'providers' ? 'admin-providers' : tab === 'rag' ? 'admin-knowledge' : tab === 'opportunities' ? 'admin-opportunities' : 'admin-impact')}
                 />
               )}
             </>
