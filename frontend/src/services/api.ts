@@ -111,9 +111,20 @@ export const api = {
   },
 
   async getSponsorships(): Promise<Sponsorship[]> {
-    const { data, error } = await supabase.from('sponsorships').select('*').order('created_at', { ascending: false });
+    const { data, error } = await supabase.from('sponsorships').select('*, sponsor:users!sponsorships_sponsor_id_fkey(full_name), learner:users!sponsorships_learner_id_fkey(full_name), opportunities(title)').order('created_at', { ascending: false });
     if (error) throw error;
-    return (data ?? []).map((row) => ({ ...row, amount: Number(row.amount), sponsor_name: 'Sponsor' } as Sponsorship));
+    return (data ?? []).map((row: Record<string, unknown>) => {
+      const sponsor = row.sponsor as { full_name?: string } | null;
+      const learner = row.learner as { full_name?: string } | null;
+      const opp = row.opportunities as { title?: string } | null;
+      return {
+        ...row,
+        amount: Number(row.amount),
+        sponsor_name: sponsor?.full_name ?? 'Sponsor',
+        learner_name: learner?.full_name ?? 'Learner',
+        opportunity_title: opp?.title ?? 'General ICT Sponsorship',
+      } as Sponsorship;
+    });
   },
   async createSponsorship(input: { learner_id?: string; opportunity_id?: string; sponsorship_request_id?: string; amount: number }): Promise<Sponsorship> {
     const result = await invoke<{ sponsorship_id: string; status: Sponsorship['status'] }>('create-sponsorship', input);

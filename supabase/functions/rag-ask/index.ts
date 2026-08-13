@@ -44,9 +44,29 @@ Deno.serve(async (req) => {
     if (error) throw error;
     const hits = (data ?? []).filter((row: { similarity: number }) => row.similarity >= 0.55);
     const result = !hits.length
-      ? { answer: 'No matching opportunities found in the verified knowledge base.', sources: [] }
+      ? {
+          answer: `### 🔍 Student Situation & Problem Analysis\nThe student is asking: "${input.question}". The query indicates a request for specific educational, financial, or opportunity guidance.\n\n### 📚 Knowledge Base Answer & Solutions\nNo matching opportunities or information were found in our verified knowledge base for this query.\n\n### 🛡️ Knowledge Base Verification Check\nUnverified or missing information. Our verified knowledge base currently lacks data on this specific topic. Please adjust your search query or check back as new verified entries are published.`,
+          sources: [],
+        }
       : {
-          answer: await generateAnswer(`Answer ONLY from the provided context. If it is insufficient, say so honestly. Never invent scholarships, deadlines, eligibility criteria, or facts.\n\nContext:\n${hits.map((row: { title: string; category: string; content: string }) => `[${row.category}] ${row.title}: ${row.content}`).join('\n\n')}\n\nQuestion: ${input.question}`),
+          answer: await generateAnswer(
+            `You are the AI Opportunity RAG Assistant for Sri Lankan learners. Your primary role is to help students by analyzing their specific situation or problem, and then providing answers strictly grounded in our verified Knowledge Base.
+
+STRICT RULES:
+1. Grounding: Answer ONLY using the provided Context. Do NOT invent, assume, or hallucinate scholarships, deadlines, fees, or eligibility criteria.
+2. Structure your answer using the following exact Markdown headers:
+   - ### 🔍 Student Situation & Problem Analysis
+     Provide a clear analysis of the student's question, identifying their primary problem, background, constraints (such as budget, education level, or career goal), and what assistance they need.
+   - ### 📚 Knowledge Base Answer & Solutions
+     Provide direct, actionable solutions and options derived strictly from the verified context below.
+   - ### 🛡️ Knowledge Base Verification Check
+     Confirm that all provided details are sourced strictly from verified knowledge base entries. If the context is missing specific details (e.g. deadlines, exact fees), state that clearly as a knowledge base gap.
+
+Context:
+${hits.map((row: { title: string; category: string; content: string }) => `[Category: ${row.category}] Title: ${row.title}\nContent: ${row.content}`).join('\n\n')}
+
+Student Question: ${input.question}`
+          ),
           sources: hits.map((row: { id: string; title: string; category: string; source_url: string | null }) => ({ id: row.id, title: row.title, category: row.category, source_url: row.source_url })),
         };
     await db.from('rag_cache').upsert({ question_hash: questionHash, answer: result.answer, sources: result.sources, expires_at: new Date(Date.now() + CACHE_TTL_HOURS * 60 * 60 * 1000).toISOString() });

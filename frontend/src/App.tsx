@@ -74,7 +74,10 @@ export function App() {
           setProfileForm({ education_level: data.education_level ?? '', interests: data.interests?.join(', ') ?? '', subjects: data.subjects?.join(', ') ?? '', location: data.location ?? '', learning_goals: data.learning_goals ?? '', budget_max: data.budget_max?.toString() ?? '', availability: data.availability ?? '' });
         } else setActiveTab('profile');
         try { setRecommendedOpps(await api.getRecommendedOpportunities(userId)); } catch { setRecommendedOpps([]); }
-        setBookings(await api.getBookings(userId));
+        const [learnerBookings, history, requests] = await Promise.all([api.getBookings(userId), api.getSponsorships(), api.getSponsorshipRequests()]);
+        setBookings(learnerBookings);
+        setSponsorships(history);
+        setSponsorshipRequests(requests);
       }
       if (userRole === 'sponsor') { const [history, requests] = await Promise.all([api.getSponsorships(), api.getSponsorshipRequests()]); setSponsorships(history); setSponsorshipRequests(requests); }
       if (userRole === 'admin') {
@@ -177,7 +180,7 @@ export function App() {
       learner_id: req.learner_id,
       amount, sponsorship_request_id: req.id,
     });
-    setSponsorships((prev) => [newSponsorship, ...prev]); setSponsorshipRequests((prev) => prev.map((item) => item.id === req.id ? { ...item, amount_raised: item.amount_raised + amount } : item)); showToast(`Pledged LKR ${amount.toLocaleString()} for ${req.learner_name}.`); } catch (error) { showToast(error instanceof Error ? error.message : 'Sponsorship failed.'); }
+    setSponsorships((prev) => [newSponsorship, ...prev]); setSponsorshipRequests((prev) => prev.map((item) => item.id === req.id ? { ...item, amount_raised: item.amount_raised + amount } : item)); showToast(`Pledged LKR ${amount.toLocaleString()} for ${req.learner_name}.`); } catch (error) { showToast(error instanceof Error ? error.message : 'Sponsorship failed.'); throw error; }
   };
 
   const handleVerifyProvider = async (providerId: string, decision: 'verified' | 'rejected') => {
@@ -211,6 +214,7 @@ export function App() {
   };
   const handleCreateSponsorshipRequest = async (title: string, reason: string, amount: number) => {
     await api.createSponsorshipRequest({ title, reason, amount_needed: amount });
+    setSponsorshipRequests(await api.getSponsorshipRequests());
     showToast('Sponsorship request submitted for review.');
   };
 
@@ -443,9 +447,28 @@ export function App() {
                 activeTab === 'sponsor-history') && (
                 <SponsorshipView
                   role={role}
+                  activeSubTab={activeTab}
                   sponsorships={sponsorships}
                   requests={sponsorshipRequests}
                   onCreatePledge={handleCreatePledge}
+                />
+              )}
+              {activeTab === 'discover' && (
+                <DiscoverOpportunities
+                  opportunities={opportunities}
+                  onBookOpportunity={() => { setAuthMode('register'); setIsAuthOpen(true); }}
+                  onAskRAG={handleAskRAG}
+                  onSearch={handleSearchOpportunities}
+                  recommendedOpportunities={recommendedOpps}
+                  bookingOpportunityId={bookingOpportunityId}
+                  bookings={bookings}
+                  isAuthenticated={true}
+                />
+              )}
+              {activeTab === 'rag' && (
+                <RAGAssistant
+                  initialQuery={ragInitialQuery}
+                  onClearInitialQuery={() => setRagInitialQuery(undefined)}
                 />
               )}
             </>

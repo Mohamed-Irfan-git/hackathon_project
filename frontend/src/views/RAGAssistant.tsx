@@ -91,6 +91,62 @@ export const RAGAssistant: React.FC<RAGAssistantProps> = ({
     'What paid internships exist for computer science school leavers?',
   ];
 
+  const renderFormattedText = (text: string) => {
+    if (!text.includes('### ')) {
+      return <p className="leading-relaxed whitespace-pre-line">{text}</p>;
+    }
+
+    const sections = text.split(/(?=### )/);
+    return (
+      <div className="space-y-3">
+        {sections.map((section, idx) => {
+          const trimmed = section.trim();
+          if (!trimmed) return null;
+
+          let header = '';
+          let bodyText = trimmed;
+
+          if (trimmed.startsWith('### ')) {
+            const firstLineEnd = trimmed.indexOf('\n');
+            if (firstLineEnd !== -1) {
+              header = trimmed.substring(4, firstLineEnd).trim();
+              bodyText = trimmed.substring(firstLineEnd + 1).trim();
+            } else {
+              header = trimmed.substring(4).trim();
+              bodyText = '';
+            }
+          }
+
+          const isAnalysis = header.includes('Problem Analysis') || header.includes('Situation');
+          const isSolution = header.includes('Knowledge Base Answer') || header.includes('Solutions');
+          const isVerification = header.includes('Verification Check');
+
+          return (
+            <div
+              key={idx}
+              className={`p-3.5 rounded-xl border text-xs sm:text-sm space-y-1.5 ${
+                isAnalysis
+                  ? 'bg-[#fffbeb] border-[#fcd34d]/60 text-[#78350f]'
+                  : isSolution
+                  ? 'bg-[#f0fdf4] border-[#86efac]/60 text-[#14532d]'
+                  : isVerification
+                  ? 'bg-[#f0f9ff] border-[#bae6fd]/60 text-[#0c4a6e]'
+                  : 'bg-white border-[#d9e3f6] text-[#121c2a]'
+              }`}
+            >
+              {header && (
+                <h4 className="font-bold text-xs font-geist flex items-center gap-1.5 uppercase tracking-wide opacity-90 border-b border-current/10 pb-1">
+                  {header}
+                </h4>
+              )}
+              {bodyText && <p className="leading-relaxed whitespace-pre-line">{bodyText}</p>}
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
   return (
     <div className="max-w-4xl mx-auto space-y-4 h-[calc(100vh-6rem)] flex flex-col">
       {/* Header */}
@@ -107,7 +163,7 @@ export const RAGAssistant: React.FC<RAGAssistantProps> = ({
               <AITag label="Grounded RAG" size="sm" />
             </div>
             <p className="text-xs text-[#6e797e]">
-              Answers are generated only from verified knowledge-base citations. If the context is insufficient, the assistant says so.
+              Analyzes student problems & provides answers generated strictly from verified knowledge-base citations.
             </p>
           </div>
         </div>
@@ -152,9 +208,9 @@ export const RAGAssistant: React.FC<RAGAssistantProps> = ({
                 <span className="text-[10px] opacity-75 font-geist">{msg.timestamp}</span>
               </div>
 
-              <p className="leading-relaxed whitespace-pre-line">{msg.text}</p>
+              {renderFormattedText(msg.text)}
               {msg.sender === 'assistant' && msg.cached && <span className="inline-flex rounded-full bg-[#e6eeff] px-2 py-0.5 text-[10px] font-semibold text-[#00647c]">Fast answer from verified cache</span>}
-              {msg.sender === 'assistant' && msg.sources?.length === 0 && msg.text === 'No matching opportunities found in the verified knowledge base.' && <p className="text-[11px] text-[#6e797e]">No relevant verified source was found, so no answer was generated.</p>}
+              {msg.sender === 'assistant' && msg.sources?.length === 0 && msg.text.includes('No matching opportunities') && <p className="text-[11px] text-[#6e797e]">No relevant verified source was found in the database.</p>}
 
               {/* Source Citations */}
               {msg.sources && msg.sources.length > 0 && (

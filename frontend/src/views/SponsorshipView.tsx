@@ -7,14 +7,16 @@ import { Heart, HeartHandshake, PlusCircle, Users, CheckCircle2 } from 'lucide-r
 
 interface SponsorshipViewProps {
   role: UserRole;
+  activeSubTab?: 'sponsor-dashboard' | 'sponsor-browse' | 'sponsor-history' | 'sponsorship';
   sponsorships: Sponsorship[];
   requests: SponsorshipRequest[];
-  onCreatePledge: (req: SponsorshipRequest, amount: number, note: string) => void;
+  onCreatePledge: (req: SponsorshipRequest, amount: number, note: string) => Promise<void>;
   onCreateRequest?: (title: string, reason: string, amount: number) => Promise<void>;
 }
 
 export const SponsorshipView: React.FC<SponsorshipViewProps> = ({
   role,
+  activeSubTab = 'sponsor-dashboard',
   sponsorships,
   requests,
   onCreatePledge,
@@ -32,12 +34,13 @@ export const SponsorshipView: React.FC<SponsorshipViewProps> = ({
 
   const totalContributed = sponsorships.reduce((sum, s) => sum + s.amount, 0);
 
-  const handlePledgeSubmit = (e: React.FormEvent) => {
+  const [isSubmittingPledge, setIsSubmittingPledge] = useState(false);
+  const handlePledgeSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (selectedReq) {
-      onCreatePledge(selectedReq, pledgeAmount, pledgeNote);
-      setSelectedReq(null);
-      setIsSuccessModal(true);
+      setIsSubmittingPledge(true);
+      try { await onCreatePledge(selectedReq, pledgeAmount, pledgeNote); setSelectedReq(null); setIsSuccessModal(true); }
+      finally { setIsSubmittingPledge(false); }
     }
   };
 
@@ -46,9 +49,16 @@ export const SponsorshipView: React.FC<SponsorshipViewProps> = ({
       {/* Title */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#d9e3f6] pb-4">
         <div>
-          <h1 className="text-2xl font-extrabold text-[#121c2a] font-display">
-            Sponsorship & Educational Support
-          </h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-extrabold text-[#121c2a] font-display">
+              Sponsorship & Educational Support
+            </h1>
+            {activeSubTab !== 'sponsorship' && (
+              <span className="px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full bg-[#e6eeff] text-[#00647c] font-geist">
+                {activeSubTab === 'sponsor-browse' ? 'Candidate Browse' : activeSubTab === 'sponsor-history' ? 'Pledge History' : 'Sponsor Dashboard'}
+              </span>
+            )}
+          </div>
           <p className="text-xs text-[#3e484d] mt-1">
             Empowering underprivileged Sri Lankan students through direct funding for courses, exam vouchers, and learning tools.
           </p>
@@ -145,14 +155,15 @@ export const SponsorshipView: React.FC<SponsorshipViewProps> = ({
 
                   <button
                     type="button"
+                    disabled={role !== 'sponsor'}
                     onClick={() => {
                       setSelectedReq(req);
                       setPledgeAmount(req.amount_needed - req.amount_raised || 5000);
                     }}
-                    className="px-4 py-2 bg-[#00647c] hover:bg-[#004e61] text-white text-xs font-semibold rounded-lg transition-colors font-geist shadow-xs flex items-center gap-1"
+                    className="px-4 py-2 bg-[#00647c] hover:bg-[#004e61] disabled:cursor-not-allowed disabled:opacity-50 text-white text-xs font-semibold rounded-lg transition-colors font-geist shadow-xs flex items-center gap-1"
                   >
                     <Heart size={14} />
-                    <span>Pledge Support</span>
+                    <span>{role === 'sponsor' ? 'Pledge Support' : 'Sponsor access required'}</span>
                   </button>
                 </div>
               </div>
@@ -262,10 +273,10 @@ export const SponsorshipView: React.FC<SponsorshipViewProps> = ({
                 Cancel
               </button>
               <button
-                type="submit"
+                type="submit" disabled={isSubmittingPledge}
                 className="px-5 py-2 bg-[#00647c] hover:bg-[#004e61] text-white text-xs font-semibold rounded-lg font-geist shadow-xs"
               >
-                Confirm Pledge
+                {isSubmittingPledge ? 'Confirming…' : 'Confirm Pledge'}
               </button>
             </div>
           </form>
