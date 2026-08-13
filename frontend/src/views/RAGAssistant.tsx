@@ -70,12 +70,13 @@ export const RAGAssistant: React.FC<RAGAssistantProps> = ({
       };
       setMessages((prev) => [...prev, assistantMsg]);
     } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'An error occurred while querying the knowledge base.';
       setMessages((prev) => [
         ...prev,
         {
           id: `err-${Date.now()}`,
           sender: 'assistant',
-          text: 'Apologies, we encountered an error while searching the verified knowledge base. Please try again.',
+          text: `### ⚠️ Notice\n${errorMsg}\n\nPlease try again or refine your query.`,
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         },
       ]);

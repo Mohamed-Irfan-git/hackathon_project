@@ -38,6 +38,7 @@ export const ProviderDashboard: React.FC<ProviderDashboardProps> = ({
 }) => {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isProfileEditOpen, setIsProfileEditOpen] = useState(false);
+  const [isSubmittingOpp, setIsSubmittingOpp] = useState(false);
   
   // Form state
   const [title, setTitle] = useState('');
@@ -63,29 +64,34 @@ export const ProviderDashboard: React.FC<ProviderDashboardProps> = ({
   const acceptedBookings = bookings.filter((b) => b.status === 'accepted');
   const rejectedBookings = bookings.filter((b) => b.status === 'rejected');
 
-  const handleFormSubmit = (e: React.FormEvent) => {
+  const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onCreateOpportunity({
-      provider_id: provider.id,
-      provider_name: provider.organization_name,
-      provider_verified: provider.verification_status === 'verified',
-      title,
-      type,
-      subject,
-      target_level: targetLevel,
-      price: Number(price),
-      delivery_mode: deliveryMode,
-      location,
-      duration,
-      description,
-      status,
-    });
+    setIsSubmittingOpp(true);
+    try {
+      await onCreateOpportunity({
+        provider_id: provider.id,
+        provider_name: provider.organization_name,
+        provider_verified: provider.verification_status === 'verified',
+        title,
+        type,
+        subject,
+        target_level: targetLevel,
+        price: Number(price),
+        delivery_mode: deliveryMode,
+        location,
+        duration,
+        description,
+        status,
+      });
 
-    setIsFormOpen(false);
-    // Reset fields
-    setTitle('');
-    setDescription('');
-    setPrice(8500);
+      setIsFormOpen(false);
+      // Reset fields
+      setTitle('');
+      setDescription('');
+      setPrice(8500);
+    } finally {
+      setIsSubmittingOpp(false);
+    }
   };
 
   const handleProfileSubmit = async (e: React.FormEvent) => {
@@ -676,9 +682,10 @@ export const ProviderDashboard: React.FC<ProviderDashboardProps> = ({
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-[#00647c] hover:bg-[#004e61] text-white text-xs font-semibold rounded-lg shadow-xs font-geist"
+                  disabled={isSubmittingOpp}
+                  className="px-5 py-2 bg-[#00647c] hover:bg-[#004e61] disabled:opacity-50 text-white text-xs font-semibold rounded-lg shadow-xs font-geist"
                 >
-                  Save & Embed
+                  {isSubmittingOpp ? 'Saving & Embedding...' : 'Save & Embed'}
                 </button>
               </div>
             </div>

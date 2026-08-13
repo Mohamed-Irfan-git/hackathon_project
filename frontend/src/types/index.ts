@@ -43,6 +43,9 @@ export interface ProviderProfileData {
   user_id: string;
   organization_name: string;
   bio?: string;
+  university?: string;
+  faculty?: string;
+  location?: string;
   website_url?: string;
   verification_status: VerificationStatus;
   credentials_url?: string;
