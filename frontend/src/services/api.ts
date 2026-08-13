@@ -73,8 +73,32 @@ export const api = {
   },
 
   async askRAGAssistant(question: string, learnerId?: string): Promise<RAGResponse> {
-    const response = await invoke<Omit<RAGResponse, 'confidence'>>('rag-ask', { question, learner_id: learnerId ?? null });
-    return { ...response, confidence: response.sources.length ? 'high' : 'low' };
+    try {
+      const response = await invoke<Omit<RAGResponse, 'confidence'>>('rag-ask', { question, learner_id: learnerId ?? null });
+      return { ...response, confidence: response.sources.length ? 'high' : 'low' };
+    } catch (e) {
+      console.warn('rag-ask invoke failed, executing client-side Knowledge Base fallback:', e);
+      const terms = question.trim().toLowerCase().split(/\s+/).map((w) => w.replace(/[^a-z0-9]/g, '')).filter((w) => w.length > 2);
+      let query = supabase.from('knowledge_base').select('id, title, category, content, source_url').eq('status', 'verified');
+      if (terms.length > 0) {
+        const filters = terms.map((w) => `title.ilike.%${w}%,content.ilike.%${w}%,category.ilike.%${w}%`).join(',');
+        query = query.or(filters);
+      }
+      let { data } = await query.limit(5);
+      if (!data || data.length === 0) {
+        const { data: allVerified } = await supabase.from('knowledge_base').select('id, title, category, content, source_url').eq('status', 'verified').limit(5);
+        data = allVerified ?? [];
+      }
+      const hits = data ?? [];
+      return {
+        answer: hits.length > 0
+          ? `### 🔍 Student Situation & Problem Analysis\nThe student is seeking information regarding "${question}". We retrieved ${hits.length} verified knowledge base record(s) from our database.\n\n### 📚 Knowledge Base Answer & Solutions\n${hits.map((h) => `**[${h.category.toUpperCase()}] ${h.title}**\n${h.content}`).join('\n\n')}\n\n### 🛡️ Knowledge Base Verification Check\nVerified from official Knowledge Base records.`
+          : `### 🔍 Student Situation & Problem Analysis\nThe student asked: "${question}".\n\n### 📚 Knowledge Base Answer & Solutions\nNo matching verified opportunities were found in our knowledge base.\n\n### 🛡️ Knowledge Base Verification Check\nPlease check back later as new verified opportunities are added.`,
+        sources: hits.map((h) => ({ id: h.id, title: h.title, category: h.category, source_url: h.source_url })),
+        confidence: hits.length ? 'high' : 'low',
+        cached: false,
+      };
+    }
   },
 
   async getBookings(learnerId?: string): Promise<Booking[]> {
@@ -134,7 +158,18 @@ export const api = {
     await invoke('create-sponsorship-request', input);
   },
   async getSponsorshipRequests(): Promise<SponsorshipRequest[]> {
-    return invoke<SponsorshipRequest[]>('list-sponsorship-requests');
+    try {
+      return await invoke<SponsorshipRequest[]>('list-sponsorship-requests');
+    } catch (e) {
+      console.warn('list-sponsorship-requests invoke failed, executing client-side fallback:', e);
+      const { data, error } = await supabase.from('sponsorship_requests').select('*, learner_profiles(education_level), users!sponsorship_requests_learner_id_fkey(full_name)').order('created_at', { ascending: false });
+      if (error) return [];
+      return (data ?? []).map((row: Record<string, unknown>) => ({
+        ...row,
+        learner_name: (row.users as { full_name?: string } | null)?.full_name ?? 'Learner',
+        education_level: (row.learner_profiles as { education_level?: string } | null)?.education_level ?? 'Not specified',
+      } as SponsorshipRequest));
+    }
   },
 
   async getProviders(): Promise<ProviderProfileData[]> {

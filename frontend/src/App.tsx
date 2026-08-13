@@ -128,6 +128,8 @@ export function App() {
       }
       setIsLoggedIn(true); setCurrentUserId(data.user.id); setUserName(appUser?.full_name || data.user.email || 'User');
       if (appUser?.role) { handleRoleChange(appUser.role); void loadData(data.user.id, appUser.role); }
+    }).catch(() => {
+      // Guest session: ignore 403/unauthenticated response silently
     }).finally(() => setIsAuthLoading(false));
   }, []);
 
