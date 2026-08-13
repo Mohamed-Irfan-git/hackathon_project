@@ -214,6 +214,18 @@ export function App() {
     showToast('Sponsorship request submitted for review.');
   };
 
+  const handleUpdateProviderProfile = async (data: { bio?: string; university?: string; faculty?: string; location?: string }) => {
+    try {
+      if (!currentUserId) return;
+      await api.updateProviderProfile(currentUserId, data);
+      await api.embedProviderProfile(currentUserId);
+      if (currentUserId) await loadData(currentUserId, 'provider');
+      showToast('Provider profile updated successfully!');
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Profile update failed.');
+    }
+  };
+
   if (isAuthLoading) return <div className="min-h-screen bg-[#f8f9ff] flex items-center justify-center p-6"><div className="rounded-2xl border border-[#d9e3f6] bg-white px-6 py-5 text-center shadow-xs"><div className="mx-auto mb-3 h-8 w-8 animate-spin rounded-full border-4 border-[#e6eeff] border-t-[#00647c]" /><p className="text-sm font-semibold text-[#121c2a]">Restoring your workspace…</p><p className="mt-1 text-xs text-[#6e797e]">Checking your secure sign-in session.</p></div></div>;
 
   const displayedLearner: LearnerProfileData = learnerProfile ?? { id: currentUserId ?? '', user_id: currentUserId ?? '', full_name: userName };
@@ -416,6 +428,8 @@ export function App() {
                   bookings={bookings}
                   onCreateOpportunity={handleCreateOpportunity}
                   onRespondBooking={handleRespondBooking}
+                  onUpdateProfile={handleUpdateProviderProfile}
+                  activeTab={activeTab as 'provider-dashboard' | 'provider-opportunities' | 'provider-bookings' | 'provider-profile'}
                 />
               )}
             </>
