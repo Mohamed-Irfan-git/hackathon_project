@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import type { UserRole } from '../../types';
 import { Modal } from '../common/Modal';
+import { Logo } from '../common/Logo';
 import { GraduationCap, Building2, Heart, Mail, Lock, User, ArrowRight } from 'lucide-react';
 import { isSupabaseConfigured, supabase } from '../../lib/supabase';
 
@@ -51,7 +52,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         }
         onSuccess((appUser?.role || 'learner') as UserRole, appUser?.full_name || data.user.email || 'User');
       } else {
-        const { data, error: authError } = await supabase.auth.signUp({
+        const { error: authError } = await supabase.auth.signUp({
           email,
           password,
           options: {
@@ -59,25 +60,28 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             emailRedirectTo: `${window.location.origin}?confirmed=1`,
           },
         });
-        if (authError || !data.user) throw authError || new Error('Sign up failed');
-        if (!data.session) throw new Error('Check your email to confirm the account, then sign in. Your profile will be created after confirmation.');
-        const { error: profileError } = await supabase.functions.invoke('complete-profile', { body: { role: selectedRole, full_name: fullName, profile: {} } });
-        if (profileError) throw profileError;
-        onSuccess(selectedRole, fullName);
+        if (authError) throw authError;
+        onSuccess(selectedRole, fullName || email.split('@')[0]);
       }
       onClose();
-    } catch (err) { setError(err instanceof Error ? err.message : 'Authentication failed'); }
-    finally { setIsSubmitting(false); }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Authentication failed.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={mode === 'login' ? 'Sign In to TakeUForward' : 'Create Your Striver Account'}
+      title={mode === 'login' ? 'Sign In to TakeUForward' : 'Create Your Account'}
       maxWidth="md"
     >
       <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="flex justify-center pb-2 border-b border-[#eff4ff]">
+          <Logo size="md" />
+        </div>
         {mode === 'register' && (
           <div>
             <label className="block text-xs font-semibold text-[#121c2a] mb-2 font-geist uppercase tracking-wider">

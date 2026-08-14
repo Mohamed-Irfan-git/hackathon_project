@@ -10,6 +10,8 @@ interface DiscoverOpportunitiesProps {
   opportunities: Opportunity[];
   onBookOpportunity: (opp: Opportunity) => void;
   onAskRAG: (query: string) => void;
+  onMessageProvider?: (opp: Opportunity) => void;
+  onViewProvider?: (providerId: string) => void;
   onSearch?: (filters: { subject?: string; level?: string; location?: string; search?: string }) => void;
   recommendedOpportunities?: Opportunity[];
   bookingOpportunityId?: string | null;
@@ -21,6 +23,8 @@ export const DiscoverOpportunities: React.FC<DiscoverOpportunitiesProps> = ({
   opportunities,
   onBookOpportunity,
   onAskRAG,
+  onMessageProvider,
+  onViewProvider,
   onSearch,
   recommendedOpportunities = [],
   bookingOpportunityId,
@@ -195,6 +199,8 @@ export const DiscoverOpportunities: React.FC<DiscoverOpportunitiesProps> = ({
               onSelect={(o) => setSelectedOpp(o)}
               onBook={beginBooking}
               onAskAI={(o) => onAskRAG(`Can you tell me more about ${o.title}?`)}
+              onMessageProvider={onMessageProvider}
+              onViewProvider={onViewProvider}
               isBooking={bookingOpportunityId === opp.id}
               bookingStatus={bookingByOpportunity.get(opp.id)}
               isAuthenticated={isAuthenticated}

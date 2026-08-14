@@ -59,6 +59,9 @@ export interface Opportunity {
   provider_id: string;
   provider_name: string;
   provider_verified: boolean;
+  provider_bio?: string;
+  provider_university?: string;
+  provider_location?: string;
   title: string;
   type: OpportunityType;
   description: string;
@@ -69,6 +72,8 @@ export interface Opportunity {
   location?: string;
   duration: string;
   status: OpportunityStatus;
+  image_url?: string;
+  video_url?: string;
   match_score?: number; // 0..1 AI match score
   match_reasons?: string[];
   created_at: string;
@@ -157,3 +162,30 @@ export interface ChatMessage {
   cached?: boolean;
   timestamp: string;
 }
+
+export interface DirectMessage {
+  id: string;
+  conversation_id: string;
+  sender_id: string;
+  sender_name?: string;
+  content: string;
+  is_read: boolean;
+  created_at: string;
+}
+
+export interface Conversation {
+  id: string;
+  learner_id: string;
+  learner_name: string;
+  provider_id: string;
+  provider_name: string;
+  opportunity_id?: string;
+  opportunity_title?: string;
+  booking_id?: string;
+  last_message?: string;
+  last_message_at: string;
+  unread_count?: number;
+  created_at: string;
+  updated_at: string;
+}
+

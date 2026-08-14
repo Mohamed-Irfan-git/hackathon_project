@@ -25,6 +25,10 @@ import { RAGAssistant } from './views/RAGAssistant';
 import { SponsorshipView } from './views/SponsorshipView';
 import { ProviderDashboard } from './views/ProviderDashboard';
 import { AdminDashboard } from './views/AdminDashboard';
+import { MessagesView } from './views/MessagesView';
+import { ChatModal } from './components/common/ChatModal';
+import { ProviderModal } from './components/common/ProviderModal';
+
 
 export function App() {
   // App state
@@ -33,6 +37,10 @@ export function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userName, setUserName] = useState('');
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
+  // Provider Modal state
+  const [selectedProvider, setSelectedProvider] = useState<ProviderProfileData | null>(null);
+  const [isProviderModalOpen, setIsProviderModalOpen] = useState(false);
 
   // Domain data
   const [learnerProfile, setLearnerProfile] = useState<LearnerProfileData | null>(null);
@@ -56,10 +64,36 @@ export function App() {
   const [isAuthLoading, setIsAuthLoading] = useState(isSupabaseConfigured);
   const [profileForm, setProfileForm] = useState({ education_level: '', interests: '', subjects: '', location: '', learning_goals: '', budget_max: '', availability: '' });
 
+  // Messaging state
+  const [unreadMessageCount, setUnreadMessageCount] = useState(0);
+  const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
+  const [isChatModalOpen, setIsChatModalOpen] = useState(false);
+  const [chatModalData, setChatModalData] = useState<{
+    learnerId: string;
+    providerId: string;
+    recipientName: string;
+    opportunityTitle?: string;
+    opportunityId?: string;
+    bookingId?: string;
+  } | null>(null);
+
+
   const showToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 4000);
   };
+
+  const loadUnreadMessages = useCallback(async (userId?: string) => {
+    const uid = userId || currentUserId;
+    if (!uid || !isSupabaseConfigured) return;
+    try {
+      const convs = await api.getConversations(uid);
+      const totalUnread = convs.reduce((sum, c) => sum + (c.unread_count || 0), 0);
+      setUnreadMessageCount(totalUnread);
+    } catch {
+      setUnreadMessageCount(0);
+    }
+  }, [currentUserId]);
 
   // Load initial data from service
   const loadData = async (userId?: string, userRole?: UserRole) => {
@@ -67,6 +101,7 @@ export function App() {
     try {
       setOpportunities(await api.getOpportunities());
       if (!userId || !userRole) return;
+      void loadUnreadMessages(userId);
       if (userRole === 'learner') {
         const { data } = await supabase.from('learner_profiles').select('*').eq('user_id', userId).single();
         if (data) {
@@ -93,6 +128,55 @@ export function App() {
     } catch (error) { showToast(error instanceof Error ? error.message : 'Unable to load live data.'); }
     finally { setIsLoading(false); }
   };
+
+  const handleMessageProvider = (opp: Opportunity) => {
+    if (!isLoggedIn || !currentUserId) {
+      setAuthMode('login');
+      setIsAuthOpen(true);
+      showToast('Please sign in to message this provider.');
+      return;
+    }
+    setChatModalData({
+      learnerId: currentUserId,
+      providerId: opp.provider_id,
+      recipientName: opp.provider_name,
+      opportunityTitle: opp.title,
+      opportunityId: opp.id,
+    });
+    setIsChatModalOpen(true);
+  };
+
+  const handleContactProviderFromBooking = (bk: Booking) => {
+    if (!currentUserId) return;
+    setChatModalData({
+      learnerId: currentUserId,
+      providerId: bk.provider_id,
+      recipientName: bk.provider_name,
+      opportunityTitle: bk.opportunity_title,
+      opportunityId: bk.opportunity_id,
+      bookingId: bk.id,
+    });
+    setIsChatModalOpen(true);
+  };
+
+  const handleContactLearnerFromBooking = (bk: Booking) => {
+    if (!currentUserId) return;
+    setChatModalData({
+      learnerId: bk.learner_id,
+      providerId: currentUserId,
+      recipientName: bk.learner_name,
+      opportunityTitle: bk.opportunity_title,
+      opportunityId: bk.opportunity_id,
+      bookingId: bk.id,
+    });
+    setIsChatModalOpen(true);
+  };
+
+  const handleOpenFullChat = (convId: string) => {
+    setActiveConversationId(convId);
+    setActiveTab('messages');
+  };
+
 
   useEffect(() => {
     void loadData();
@@ -232,6 +316,24 @@ export function App() {
     }
   };
 
+  const handleViewProvider = (providerId: string) => {
+    const found = providers.find((p) => p.user_id === providerId || p.id === providerId);
+    const opp = opportunities.find((o) => o.provider_id === providerId);
+    const providerData: ProviderProfileData = found || {
+      id: providerId,
+      user_id: providerId,
+      organization_name: opp?.provider_name || 'University Provider',
+      verification_status: opp?.provider_verified ? 'verified' : 'pending',
+      university: opp?.provider_university || 'University of Moratuwa',
+      faculty: 'Faculty of Engineering',
+      bio: opp?.provider_bio || 'Experienced university instructor providing structured courses and mentorship for students.',
+      rating: 4.9,
+      total_students: 150,
+    };
+    setSelectedProvider(providerData);
+    setIsProviderModalOpen(true);
+  };
+
   if (isAuthLoading) return <div className="min-h-screen bg-[#f8f9ff] flex items-center justify-center p-6"><div className="rounded-2xl border border-[#d9e3f6] bg-white px-6 py-5 text-center shadow-xs"><div className="mx-auto mb-3 h-8 w-8 animate-spin rounded-full border-4 border-[#e6eeff] border-t-[#00647c]" /><p className="text-sm font-semibold text-[#121c2a]">Restoring your workspace…</p><p className="mt-1 text-xs text-[#6e797e]">Checking your secure sign-in session.</p></div></div>;
 
   const displayedLearner: LearnerProfileData = learnerProfile ?? { id: currentUserId ?? '', user_id: currentUserId ?? '', full_name: userName };
@@ -251,6 +353,7 @@ export function App() {
           setIsAuthOpen(true);
         }}
         onNavigateRAG={() => handleAskRAG('Show verified ICT scholarships')}
+        onNavigateMessages={() => setActiveTab('messages')}
         onToggleSidebarMobile={() => setIsMobileSidebarOpen(true)}
         userName={userName}
         isLoggedIn={isLoggedIn}
@@ -260,6 +363,7 @@ export function App() {
           setRole('public');
           showToast('Signed out successfully.');
         }}
+        unreadMessageCount={unreadMessageCount}
       />
 
       {/* Main Body */}
@@ -273,6 +377,7 @@ export function App() {
           onCloseMobile={() => setIsMobileSidebarOpen(false)}
           bookingCount={role === 'provider' ? bookings.filter((booking) => booking.status === 'pending').length : bookings.length}
           pendingProviderCount={providers.filter((provider) => provider.verification_status === 'pending').length}
+          unreadMessageCount={unreadMessageCount}
         />
 
         {/* Content Area */}
@@ -287,8 +392,10 @@ export function App() {
               }}
               featuredOpportunities={opportunities}
               onSelectOpportunity={() => setIsAuthOpen(true)}
-              onNavigateRAG={() => handleAskRAG('What scholarships are available?')}
+              onNavigateRAG={(query) => handleAskRAG(query || 'What scholarships are available?')}
               onExplore={() => setActiveTab('discover')}
+              onMessageProvider={handleMessageProvider}
+              onViewProvider={handleViewProvider}
             />
           )}
 
@@ -297,6 +404,7 @@ export function App() {
               opportunities={opportunities}
               onBookOpportunity={() => { setAuthMode('register'); setIsAuthOpen(true); showToast('Create a learner account to book an opportunity.'); }}
               onAskRAG={handleAskRAG}
+              onMessageProvider={handleMessageProvider}
               onSearch={handleSearchOpportunities}
               recommendedOpportunities={recommendedOpps}
               bookingOpportunityId={bookingOpportunityId}
@@ -307,6 +415,16 @@ export function App() {
 
           {role === 'public' && activeTab === 'rag' && (
             <RAGAssistant initialQuery={ragInitialQuery} onClearInitialQuery={() => setRagInitialQuery(undefined)} />
+          )}
+
+          {/* Shared Messages View */}
+          {activeTab === 'messages' && currentUserId && (
+            <MessagesView
+              currentUserId={currentUserId}
+              currentRole={role}
+              initialConversationId={activeConversationId}
+              showToast={showToast}
+            />
           )}
 
           {/* Learner Views */}
@@ -329,6 +447,8 @@ export function App() {
                   opportunities={opportunities}
                   onBookOpportunity={handleBookOpportunity}
                   onAskRAG={handleAskRAG}
+                  onMessageProvider={handleMessageProvider}
+                  onViewProvider={handleViewProvider}
                   onSearch={handleSearchOpportunities}
                   recommendedOpportunities={recommendedOpps}
                   bookingOpportunityId={bookingOpportunityId}
@@ -341,8 +461,10 @@ export function App() {
                 <MyBookings
                   bookings={bookings}
                   onNavigateDiscover={() => setActiveTab('discover')}
+                  onContactProvider={handleContactProviderFromBooking}
                 />
               )}
+
 
               {activeTab === 'rag' && (
                 <RAGAssistant
@@ -434,6 +556,7 @@ export function App() {
                   bookings={bookings}
                   onCreateOpportunity={handleCreateOpportunity}
                   onRespondBooking={handleRespondBooking}
+                  onContactLearner={handleContactLearnerFromBooking}
                   onUpdateProfile={handleUpdateProviderProfile}
                   activeTab={activeTab as 'provider-dashboard' | 'provider-opportunities' | 'provider-bookings' | 'provider-profile'}
                 />
@@ -460,6 +583,8 @@ export function App() {
                   opportunities={opportunities}
                   onBookOpportunity={() => { setAuthMode('register'); setIsAuthOpen(true); }}
                   onAskRAG={handleAskRAG}
+                  onMessageProvider={handleMessageProvider}
+                  onViewProvider={handleViewProvider}
                   onSearch={handleSearchOpportunities}
                   recommendedOpportunities={recommendedOpps}
                   bookingOpportunityId={bookingOpportunityId}
@@ -526,8 +651,60 @@ export function App() {
           }}
         />
       )}
+
+      {/* Quick Chat Modal */}
+      {isChatModalOpen && chatModalData && currentUserId && (
+        <ChatModal
+          isOpen={isChatModalOpen}
+          onClose={() => setIsChatModalOpen(false)}
+          currentUserId={currentUserId}
+          learnerId={chatModalData.learnerId}
+          providerId={chatModalData.providerId}
+          recipientName={chatModalData.recipientName}
+          opportunityTitle={chatModalData.opportunityTitle}
+          opportunityId={chatModalData.opportunityId}
+          bookingId={chatModalData.bookingId}
+          showToast={showToast}
+          onGoToFullChat={handleOpenFullChat}
+        />
+      )}
+
+      {/* Provider Showcase Modal */}
+      {isProviderModalOpen && selectedProvider && (
+        <ProviderModal
+          isOpen={isProviderModalOpen}
+          onClose={() => setIsProviderModalOpen(false)}
+          provider={selectedProvider}
+          opportunities={opportunities}
+          onMessageProvider={(opp) => {
+            if (currentUserId && opp) {
+              setChatModalData({
+                learnerId: currentUserId,
+                providerId: opp.provider_id,
+                recipientName: opp.provider_name,
+                opportunityTitle: opp.title,
+                opportunityId: opp.id,
+              });
+              setIsChatModalOpen(true);
+            }
+          }}
+          onSelectOpportunity={(_opp) => {
+            setActiveTab('discover');
+          }}
+          onBookOpportunity={(opp) => {
+            if (!isLoggedIn) {
+              setAuthMode('register');
+              setIsAuthOpen(true);
+            } else {
+              void handleBookOpportunity(opp);
+            }
+          }}
+          onAskRAG={handleAskRAG}
+        />
+      )}
     </div>
   );
 }
 
 export default App;
+

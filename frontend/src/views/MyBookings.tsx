@@ -2,14 +2,15 @@ import React, { useState } from 'react';
 import type { Booking } from '../types';
 import { Badge } from '../components/common/Badge';
 import { EmptyState } from '../components/common/EmptyState';
-import { CalendarCheck, Clock, Video } from 'lucide-react';
+import { CalendarCheck, Clock, Video, MessageSquare } from 'lucide-react';
 
 interface MyBookingsProps {
   bookings: Booking[];
   onNavigateDiscover: () => void;
+  onContactProvider?: (booking: Booking) => void;
 }
 
-export const MyBookings: React.FC<MyBookingsProps> = ({ bookings, onNavigateDiscover }) => {
+export const MyBookings: React.FC<MyBookingsProps> = ({ bookings, onNavigateDiscover, onContactProvider }) => {
   const [filter, setFilter] = useState<'all' | 'pending' | 'accepted' | 'rejected'>('all');
 
   const filtered = bookings.filter((b) => (filter === 'all' ? true : b.status === filter));
@@ -115,6 +116,16 @@ export const MyBookings: React.FC<MyBookingsProps> = ({ bookings, onNavigateDisc
               </div>
 
               <div className="flex items-center gap-2 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-[#eff4ff]">
+                {onContactProvider && (
+                  <button
+                    type="button"
+                    onClick={() => onContactProvider(bk)}
+                    className="px-3.5 py-2 bg-[#e6eeff] hover:bg-[#d9e3f6] text-[#00647c] text-xs font-semibold rounded-lg transition-colors font-geist flex items-center gap-1.5"
+                  >
+                    <MessageSquare size={14} />
+                    <span>Message Provider</span>
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => alert(`Viewing session details for ${bk.opportunity_title}`)}
@@ -130,3 +141,4 @@ export const MyBookings: React.FC<MyBookingsProps> = ({ bookings, onNavigateDisc
     </div>
   );
 };
+

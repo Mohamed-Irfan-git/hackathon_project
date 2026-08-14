@@ -12,12 +12,14 @@ import {
   CheckCircle,
   Layers,
   X,
+  MessageSquare,
 } from 'lucide-react';
 
 export type NavTab =
   | 'learner-dashboard'
   | 'discover'
   | 'bookings'
+  | 'messages'
   | 'rag'
   | 'sponsorship'
   | 'profile'
@@ -41,6 +43,7 @@ interface SidebarProps {
   onCloseMobile: () => void;
   bookingCount?: number;
   pendingProviderCount?: number;
+  unreadMessageCount?: number;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -51,6 +54,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onCloseMobile,
   bookingCount = 0,
   pendingProviderCount = 0,
+  unreadMessageCount = 0,
 }) => {
   if (currentRole === 'public') return null;
 
@@ -69,6 +73,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       { id: 'learner-dashboard', label: 'Dashboard', icon: <LayoutDashboard size={18} /> },
       { id: 'discover', label: 'Discover Opportunities', icon: <Compass size={18} /> },
       { id: 'bookings', label: 'My Bookings', icon: <CalendarCheck size={18} />, badge: bookingCount ? String(bookingCount) : undefined },
+      { id: 'messages', label: 'Messages', icon: <MessageSquare size={18} />, badge: unreadMessageCount ? String(unreadMessageCount) : undefined },
       { id: 'rag', label: 'AI RAG Assistant', icon: <Sparkles size={18} />, isAI: true },
       { id: 'sponsorship', label: 'Sponsorships', icon: <HeartHandshake size={18} /> },
       { id: 'profile', label: 'My Profile', icon: <User size={18} /> },
@@ -78,6 +83,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       { id: 'provider-dashboard', label: 'Provider Portal', icon: <LayoutDashboard size={18} /> },
       { id: 'provider-opportunities', label: 'My Opportunities', icon: <Layers size={18} /> },
       { id: 'provider-bookings', label: 'Booking Requests', icon: <CalendarCheck size={18} />, badge: bookingCount ? String(bookingCount) : undefined },
+      { id: 'messages', label: 'Messages', icon: <MessageSquare size={18} />, badge: unreadMessageCount ? String(unreadMessageCount) : undefined },
       { id: 'provider-profile', label: 'Profile & Verification', icon: <CheckCircle size={18} /> },
     ];
   } else if (currentRole === 'sponsor') {
@@ -94,6 +100,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       { id: 'admin-opportunities', label: 'Opportunity Moderation', icon: <ShieldAlert size={18} /> },
     ];
   }
+
 
   const navContent = (
     <div className="flex flex-col h-full bg-[#f8f9ff] border-r border-[#d9e3f6] p-4 w-[260px]">

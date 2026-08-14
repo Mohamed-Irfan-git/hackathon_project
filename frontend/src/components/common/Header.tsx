@@ -1,16 +1,19 @@
 import React from 'react';
 import type { UserRole } from '../../types';
-import { Sparkles, LogIn, Menu, Shield, Globe } from 'lucide-react';
+import { Logo } from './Logo';
+import { Sparkles, LogIn, Menu, Shield, Globe, MessageSquare } from 'lucide-react';
 
 interface HeaderProps {
   currentRole: UserRole;
   onHome: () => void;
   onOpenAuth: (mode: 'login' | 'register') => void;
   onNavigateRAG: () => void;
+  onNavigateMessages?: () => void;
   onToggleSidebarMobile: () => void;
   userName?: string;
   isLoggedIn: boolean;
   onLogout: () => void;
+  unreadMessageCount?: number;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -18,10 +21,12 @@ export const Header: React.FC<HeaderProps> = ({
   onHome,
   onOpenAuth,
   onNavigateRAG,
+  onNavigateMessages,
   onToggleSidebarMobile,
   userName = 'User',
   isLoggedIn,
   onLogout,
+  unreadMessageCount = 0,
 }) => {
   return (
     <header className="sticky top-0 z-40 bg-white border-b border-[#d9e3f6] shadow-xs">
@@ -39,22 +44,7 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
           )}
 
-          <div
-            onClick={onHome}
-            className="flex items-center gap-2 cursor-pointer group"
-          >
-            <div className="w-9 h-9 rounded-xl bg-[#00647c] flex items-center justify-center text-white font-bold text-lg font-display shadow-xs group-hover:bg-[#004e61] transition-colors">
-              S
-            </div>
-            <div>
-              <span className="font-extrabold text-lg text-[#121c2a] tracking-tight font-display block leading-none">
-                TakeUForward
-              </span>
-              <span className="text-[10px] font-medium text-[#6e797e] font-geist tracking-wider uppercase block mt-0.5">
-                Striver Platform
-              </span>
-            </div>
-          </div>
+          <Logo onClick={onHome} size="md" />
         </div>
 
         <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-[#eff4ff] rounded-xl border border-[#d9e3f6] text-xs font-semibold text-[#00647c] font-geist">
@@ -63,6 +53,23 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Right CTAs */}
         <div className="flex items-center gap-2 sm:gap-3">
+          {/* Messages Quick Access Button */}
+          {isLoggedIn && onNavigateMessages && (
+            <button
+              type="button"
+              onClick={onNavigateMessages}
+              className="relative p-2 text-[#00647c] hover:bg-[#e6eeff] border border-[#d9e3f6] rounded-lg transition-colors font-geist"
+              title="View Messages"
+            >
+              <MessageSquare size={16} />
+              {Boolean(unreadMessageCount && unreadMessageCount > 0) && (
+                <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#ea580c] text-white text-[9px] font-bold rounded-full flex items-center justify-center font-geist">
+                  {unreadMessageCount > 9 ? '9+' : unreadMessageCount}
+                </span>
+              )}
+            </button>
+          )}
+
           {/* RAG Assistant quick trigger */}
           <button
             type="button"
@@ -72,6 +79,7 @@ export const Header: React.FC<HeaderProps> = ({
             <Sparkles size={14} className="text-[#ea580c]" />
             <span className="hidden sm:inline">AI Assistant</span>
           </button>
+
 
           {isLoggedIn ? (
             <div className="flex items-center gap-2">

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import type { Opportunity, Booking, ProviderProfileData } from '../types';
+import { api } from '../services/api';
 import { MetricTile } from '../components/common/MetricTile';
 import { Badge } from '../components/common/Badge';
 import { Modal } from '../components/common/Modal';
@@ -15,6 +16,7 @@ import {
   XCircle,
   Edit2,
   LogOut,
+  MessageSquare,
 } from 'lucide-react';
 
 interface ProviderDashboardProps {
@@ -23,6 +25,7 @@ interface ProviderDashboardProps {
   bookings: Booking[];
   onCreateOpportunity: (data: Partial<Opportunity>) => void;
   onRespondBooking: (bookingId: string, decision: 'accepted' | 'rejected') => void;
+  onContactLearner?: (booking: Booking) => void;
   onUpdateProfile?: (data: { bio?: string; university?: string; faculty?: string; location?: string }) => void;
   activeTab?: 'provider-dashboard' | 'provider-opportunities' | 'provider-bookings' | 'provider-profile';
 }
@@ -33,6 +36,7 @@ export const ProviderDashboard: React.FC<ProviderDashboardProps> = ({
   bookings,
   onCreateOpportunity,
   onRespondBooking,
+  onContactLearner,
   onUpdateProfile,
   activeTab = 'provider-dashboard',
 }) => {
@@ -51,6 +55,9 @@ export const ProviderDashboard: React.FC<ProviderDashboardProps> = ({
   const [duration, setDuration] = useState('6 Weeks');
   const [description, setDescription] = useState('');
   const [status, setStatus] = useState<'draft' | 'active'>('active');
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imageUrlInput, setImageUrlInput] = useState('');
+  const [videoUrlInput, setVideoUrlInput] = useState('');
   
   // Profile edit form state
   const [profileForm, setProfileForm] = useState({
@@ -68,6 +75,15 @@ export const ProviderDashboard: React.FC<ProviderDashboardProps> = ({
     e.preventDefault();
     setIsSubmittingOpp(true);
     try {
+      let finalImageUrl = imageUrlInput.trim();
+      if (imageFile) {
+        try {
+          finalImageUrl = await api.uploadOpportunityImage(imageFile);
+        } catch (err) {
+          console.warn('Cover image upload failed, proceeding with fallback:', err);
+        }
+      }
+
       await onCreateOpportunity({
         provider_id: provider.id,
         provider_name: provider.organization_name,
@@ -82,6 +98,8 @@ export const ProviderDashboard: React.FC<ProviderDashboardProps> = ({
         duration,
         description,
         status,
+        image_url: finalImageUrl || undefined,
+        video_url: videoUrlInput.trim() || undefined,
       });
 
       setIsFormOpen(false);
@@ -89,6 +107,9 @@ export const ProviderDashboard: React.FC<ProviderDashboardProps> = ({
       setTitle('');
       setDescription('');
       setPrice(8500);
+      setImageFile(null);
+      setImageUrlInput('');
+      setVideoUrlInput('');
     } finally {
       setIsSubmittingOpp(false);
     }
@@ -229,6 +250,18 @@ export const ProviderDashboard: React.FC<ProviderDashboardProps> = ({
                     </div>
 
                     <div className="flex items-center gap-2 shrink-0">
+                      {onContactLearner && (
+                        <button
+                          type="button"
+                          onClick={() => onContactLearner(bk)}
+                          className="px-3 py-1.5 bg-[#e6eeff] hover:bg-[#d9e3f6] text-[#00647c] text-xs font-semibold rounded-lg transition-colors font-geist flex items-center gap-1"
+                          title="Message Learner"
+                        >
+                          <MessageSquare size={14} />
+                          <span>Message</span>
+                        </button>
+                      )}
+
                       <button
                         type="button"
                         onClick={() => onRespondBooking(bk.id, 'rejected')}
@@ -347,6 +380,18 @@ export const ProviderDashboard: React.FC<ProviderDashboardProps> = ({
                     </div>
 
                     <div className="flex items-center gap-2 shrink-0">
+                      {onContactLearner && (
+                        <button
+                          type="button"
+                          onClick={() => onContactLearner(bk)}
+                          className="px-3 py-1.5 bg-[#e6eeff] hover:bg-[#d9e3f6] text-[#00647c] text-xs font-semibold rounded-lg transition-colors font-geist flex items-center gap-1"
+                          title="Message Learner"
+                        >
+                          <MessageSquare size={14} />
+                          <span>Message</span>
+                        </button>
+                      )}
+
                       <button
                         type="button"
                         onClick={() => onRespondBooking(bk.id, 'rejected')}
@@ -642,10 +687,51 @@ export const ProviderDashboard: React.FC<ProviderDashboardProps> = ({
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 required
-                rows={4}
+                rows={3}
                 placeholder="Detail syllabus coverage, prerequisites, and learning outcomes..."
                 className="w-full px-3 py-2 text-xs rounded-lg border border-[#d9e3f6] focus:outline-none focus:border-[#00647c]"
               />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-[#3e484d] mb-1">
+                Opportunity Cover Photo (Upload or Web Image URL)
+              </label>
+              <div className="space-y-2">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    if (e.target.files && e.target.files[0]) {
+                      setImageFile(e.target.files[0]);
+                    }
+                  }}
+                  className="w-full text-xs text-[#3e484d] file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-[#e6eeff] file:text-[#00647c] hover:file:bg-[#d9e3f6]"
+                />
+                <input
+                  type="url"
+                  value={imageUrlInput}
+                  onChange={(e) => setImageUrlInput(e.target.value)}
+                  placeholder="Or paste an image URL directly (e.g. https://...)"
+                  className="w-full px-3 py-2 text-xs rounded-lg border border-[#d9e3f6] focus:outline-none focus:border-[#00647c]"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-[#3e484d] mb-1">
+                Demo Video URL (YouTube Link)
+              </label>
+              <input
+                type="url"
+                value={videoUrlInput}
+                onChange={(e) => setVideoUrlInput(e.target.value)}
+                placeholder="e.g. https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+                className="w-full px-3 py-2 text-xs rounded-lg border border-[#d9e3f6] focus:outline-none focus:border-[#00647c]"
+              />
+              <span className="text-[10px] text-[#6e797e] mt-0.5 block font-geist">
+                Attach a YouTube demo or class preview video for your learners.
+              </span>
             </div>
 
             {/* AI Vector Embedding Notice */}
